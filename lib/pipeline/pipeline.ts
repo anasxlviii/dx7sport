@@ -1,5 +1,4 @@
 import { extractTopic, type ExtractedTopic } from './extract-topic';
-import { deepSearch, type FactCheckResult } from './deep-search';
 import { generateArticle, type GeneratedArticle } from './generate-article';
 import { db } from '../db/db';
 import { articles, sources } from '../db/schema';
@@ -34,7 +33,6 @@ export interface PipelineStep {
 export async function runPipeline(input: PipelineInput): Promise<PipelineResult> {
   const steps: PipelineStep[] = [
     { name: 'Extract Topic', status: 'pending' },
-    { name: 'Deep Search', status: 'pending' },
     { name: 'Generate Article', status: 'pending' },
     { name: 'Save to Database', status: 'pending' },
   ];
@@ -56,15 +54,15 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       throw error;
     }
 
-    // Step 2: Deep Search
+    // Step 2: Generate Article (using AI's built-in knowledge)
     steps[1].status = 'running';
     steps[1].startedAt = new Date();
 
-    let factChecks: FactCheckResult[];
+    let generated: GeneratedArticle;
     try {
-      factChecks = await deepSearch(topic.searchQueries, topic.entities);
+      generated = await generateArticle(topic);
       steps[1].status = 'completed';
-      steps[1].result = { searchCount: factChecks.length };
+      steps[1].result = { title: generated.title };
       steps[1].completedAt = new Date();
     } catch (error) {
       steps[1].status = 'failed';
@@ -72,25 +70,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       throw error;
     }
 
-    // Step 3: Generate Article
+    // Step 3: Save to Database
     steps[2].status = 'running';
     steps[2].startedAt = new Date();
-
-    let generated: GeneratedArticle;
-    try {
-      generated = await generateArticle(topic, factChecks);
-      steps[2].status = 'completed';
-      steps[2].result = { title: generated.title };
-      steps[2].completedAt = new Date();
-    } catch (error) {
-      steps[2].status = 'failed';
-      steps[2].error = String(error);
-      throw error;
-    }
-
-    // Step 4: Save to Database
-    steps[3].status = 'running';
-    steps[3].startedAt = new Date();
 
     try {
       // Generate unique slug
@@ -135,9 +117,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         );
       }
 
-      steps[3].status = 'completed';
-      steps[3].result = { articleId: article.id };
-      steps[3].completedAt = new Date();
+      steps[2].status = 'completed';
+      steps[2].result = { articleId: article.id };
+      steps[2].completedAt = new Date();
 
       return {
         success: true,
@@ -150,8 +132,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         steps,
       };
     } catch (error) {
-      steps[3].status = 'failed';
-      steps[3].error = String(error);
+      steps[2].status = 'failed';
+      steps[2].error = String(error);
       throw error;
     }
   } catch (error) {

@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { ExtractedTopic } from './extract-topic';
-import type { FactCheckResult } from './deep-search';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
@@ -25,9 +24,9 @@ const SYSTEM_PROMPT = `You are a professional football journalist. Write engagin
 
 Guidelines:
 - Write in a clear, engaging style suitable for football fans
-- Include verified facts and statistics
+- Include verified facts and statistics from your knowledge
 - Structure articles with clear headings and sections
-- Always cite sources when making factual claims
+- Use your training knowledge for facts (you're up to date as of April 2025)
 - Avoid speculation unless clearly labeled as such
 - Include a "Key Facts" box with important statistics
 - Write for an audience of passionate football fans
@@ -43,30 +42,13 @@ Return ONLY valid JSON in this exact format:
     {"heading": "Section heading", "content": "Section content"}
   ],
   "factBox": "5-7 bullet points of key facts and stats",
-  "sources": [{"url": "source url", "title": "source title", "credibility": "high|medium|low"}]
+  "sources": []
 }`;
 
 export async function generateArticle(
-  topic: ExtractedTopic,
-  factChecks: FactCheckResult[]
+  topic: ExtractedTopic
 ): Promise<GeneratedArticle> {
   try {
-    // Prepare source context
-    const sourceContext = factChecks
-      .map(fc =>
-        fc.results
-          .slice(0, 3)
-          .map(r => `- ${r.title}: ${r.snippet}`)
-          .join('\n')
-      )
-      .join('\n\n');
-
-    // Prepare verified facts
-    const verifiedFacts = factChecks
-      .map(fc => fc.verifiedFacts)
-      .flat()
-      .join('\n');
-
     const prompt = `Write a football article based on this information:
 
 **Topic Analysis:**
@@ -76,11 +58,8 @@ export async function generateArticle(
 - Entities: ${topic.entities.join(', ')}
 - Key Questions to Address: ${topic.keyQuestions.join(', ')}
 
-**Verified Facts from Research:**
-${verifiedFacts || 'No specific facts provided - use general knowledge'}
-
-**Source Context:**
-${sourceContext || 'Use general football knowledge'}
+**Instructions:**
+Use your internal knowledge to write a comprehensive, factual article. Include recent stats, transfers, and relevant information you know.
 
 **Facebook Post Context:**
 This will be converted from a Facebook post, so make it comprehensive and well-structured.
@@ -89,7 +68,7 @@ Requirements:
 1. Write a compelling headline that captures attention
 2. Start with a strong lead paragraph
 3. Address the key questions mentioned above
-4. Include relevant facts and statistics
+4. Include relevant facts and statistics from your knowledge
 5. End with a conclusion or question to engage readers
 6. Format as markdown with proper headings`;
 
@@ -104,24 +83,13 @@ Requirements:
 
     const parsed = JSON.parse(cleanJson);
 
-    // Collect unique sources from fact checks
-    const sources = factChecks
-      .flatMap(fc => fc.results)
-      .filter((r, i, arr) => arr.findIndex(s => s.url === r.url) === i)
-      .slice(0, 10)
-      .map(r => ({
-        url: r.url,
-        title: r.title,
-        credibility: r.credibility,
-      }));
-
     return {
       title: parsed.title,
       excerpt: parsed.excerpt,
       content: parsed.content,
       sections: parsed.sections || [],
       factBox: parsed.factBox,
-      sources,
+      sources: parsed.sources || [],
     };
   } catch (error) {
     console.error('Error generating article:', error);
