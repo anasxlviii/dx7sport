@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { ExtractedTopic } from './extract-topic';
+import type { FactCheckResult } from './deep-search';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
 const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
@@ -24,10 +25,9 @@ const SYSTEM_PROMPT = `You are a professional football journalist. Write engagin
 
 Guidelines:
 - Write in a clear, engaging style suitable for football fans
-- Include verified facts and statistics from your knowledge
+- Use the provided search results to cite real sources
 - Structure articles with clear headings and sections
-- Use your training knowledge for facts (you're up to date as of April 2025)
-- Avoid speculation unless clearly labeled as such
+- Include URLs as citations when using information from sources
 - Include a "Key Facts" box with important statistics
 - Write for an audience of passionate football fans
 - Keep paragraphs concise (2-3 sentences)
@@ -42,13 +42,36 @@ Return ONLY valid JSON in this exact format:
     {"heading": "Section heading", "content": "Section content"}
   ],
   "factBox": "5-7 bullet points of key facts and stats",
-  "sources": []
+  "sources": [{"url": "source url", "title": "source title", "credibility": "high|medium|low"}]
 }`;
 
 export async function generateArticle(
-  topic: ExtractedTopic
+  topic: ExtractedTopic,
+  factChecks: FactCheckResult[] = []
 ): Promise<GeneratedArticle> {
   try {
+    // Prepare source context from search results
+    let sourceContext = '';
+    let verifiedFacts = '';
+
+    if (factChecks && factChecks.length > 0) {
+      sourceContext = factChecks
+        .map(fc =>
+          fc.results
+            .slice(0, 3)
+            .map(r => `- [${r.title}](${r.url}): ${r.snippet}`)
+            .join('\n')
+        )
+        .join('\n\n');
+
+      verifiedFacts = factChecks
+        .map(fc => fc.verifiedFacts)
+        .flat()
+        .join('\n');
+    }
+
+    const hasRealSources = factChecks && factChecks.length > 0 && factChecks.some(fc => fc.results.length > 0);
+
     const prompt = `Write a football article based on this information:
 
 **Topic Analysis:**
@@ -58,19 +81,25 @@ export async function generateArticle(
 - Entities: ${topic.entities.join(', ')}
 - Key Questions to Address: ${topic.keyQuestions.join(', ')}
 
-**Instructions:**
-Use your internal knowledge to write a comprehensive, factual article. Include recent stats, transfers, and relevant information you know.
+${hasRealSources ? `
+**Live Search Results from DuckDuckGo:**
+${sourceContext}
 
-**Facebook Post Context:**
-This will be converted from a Facebook post, so make it comprehensive and well-structured.
+**Verified Facts:**
+${verifiedFacts || 'Using search results above'}
+` : `
+**Note:** No live search results available. Use your internal knowledge.
+`}
 
-Requirements:
+**Requirements:**
 1. Write a compelling headline that captures attention
 2. Start with a strong lead paragraph
 3. Address the key questions mentioned above
-4. Include relevant facts and statistics from your knowledge
-5. End with a conclusion or question to engage readers
-6. Format as markdown with proper headings`;
+4. ${hasRealSources ? 'Use the search results as sources and cite them' : 'Use your football knowledge for facts'}
+5. Include relevant statistics and recent information
+6. End with a conclusion or question to engage readers
+7. Format as markdown with proper headings
+8. ${hasRealSources ? 'Include source links in the article' : 'No source links needed'}`;
 
     const result = await model.generateContent([SYSTEM_PROMPT, prompt]);
     const response = result.response.text().trim();
@@ -83,13 +112,26 @@ Requirements:
 
     const parsed = JSON.parse(cleanJson);
 
+    // Collect sources from fact checks
+    const sources = hasRealSources
+      ? factChecks
+          .flatMap(fc => fc.results)
+          .filter((r, i, arr) => arr.findIndex(s => s.url === r.url) === i)
+          .slice(0, 10)
+          .map(r => ({
+            url: r.url,
+            title: r.title,
+            credibility: r.credibility,
+          }))
+      : [];
+
     return {
       title: parsed.title,
       excerpt: parsed.excerpt,
       content: parsed.content,
       sections: parsed.sections || [],
       factBox: parsed.factBox,
-      sources: parsed.sources || [],
+      sources,
     };
   } catch (error) {
     console.error('Error generating article:', error);

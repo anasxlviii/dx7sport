@@ -1,3 +1,5 @@
+import { search } from 'duckduckgo-search';
+
 interface SearchResult {
   url: string;
   title: string;
@@ -5,40 +7,14 @@ interface SearchResult {
   credibility: 'high' | 'medium' | 'low';
 }
 
-interface SearchResponse {
-  items?: Array<{
-    link: string;
-    title: string;
-    snippet: string;
-    displayLink?: string;
-  }>;
-}
-
 const CREDIBLE_SOURCES = [
-  'bbc.com',
-  'bbc.co.uk',
-  'espn.com',
-  'sky.com',
-  'goal.com',
-  'theathletic.com',
-  'theguardian.com',
-  'reuters.com',
-  ' Associated Press',
-  'uefa.com',
-  'fifa.com',
-  'premierleague.com',
-  'laliga.com',
-  'legaseriea.it',
-  'bundesliga.com',
-  'ligue1.com',
-  'marca.com',
-  'as.com',
-  'lequipe.fr',
-  'gazzetta.it',
-  'kicker.de',
-  'transfermarkt.com',
-  'sportinglife.com',
-  'nbcsports.com',
+  'bbc.com', 'bbc.co.uk', 'espn.com', 'sky.com', 'goal.com',
+  'theathletic.com', 'theguardian.com', 'reuters.com',
+  'uefa.com', 'fifa.com', 'premierleague.com', 'laliga.com',
+  'legaseriea.it', 'bundesliga.com', 'ligue1.com',
+  'marca.com', 'as.com', 'lequipe.fr', 'gazzetta.it',
+  'kicker.de', 'transfermarkt.com', 'sportinglife.com',
+  'nbcsports.com', 'cnn.com', 'foxsports.com',
 ];
 
 export interface FactCheckResult {
@@ -48,59 +24,51 @@ export interface FactCheckResult {
   conflictingReports: string[];
 }
 
-export async function searchGoogle(query: string): Promise<SearchResult[]> {
-  const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
-  const cx = process.env.GOOGLE_SEARCH_CX;
-
-  if (!apiKey || !cx) {
-    throw new Error('Google Search API credentials not configured');
-  }
-
-  const url = new URL('https://www.googleapis.com/customsearch/v1');
-  url.searchParams.append('key', apiKey);
-  url.searchParams.append('cx', cx);
-  url.searchParams.append('q', query);
-  url.searchParams.append('num', '10');
-
+export async function searchDuckDuckGo(query: string): Promise<SearchResult[]> {
   try {
-    const response = await fetch(url.toString());
+    const results = await search(query, {
+      region: 'wt-wt',
+      safeSearch: 'moderate',
+    });
 
-    if (!response.ok) {
-      throw new Error(`Search API error: ${response.status}`);
-    }
-
-    const data: SearchResponse = await response.json();
-
-    return (data.items || []).map(item => ({
-      url: item.link,
-      title: item.title,
-      snippet: item.snippet,
-      credibility: assessCredibility(item.link, item.displayLink || ''),
+    // DuckDuckGo returns different format, let's normalize it
+    return (results || []).slice(0, 10).map((result: any) => ({
+      url: result.url || result.link || '',
+      title: result.title || result.text || '',
+      snippet: result.description || result.body || result.snippet || '',
+      credibility: assessCredibility(result.url || result.link || ''),
     }));
   } catch (error) {
-    console.error(`Search failed for query "${query}":`, error);
+    console.error(`DuckDuckGo search failed for "${query}":`, error);
     return [];
   }
 }
 
-function assessCredibility(url: string, displayLink: string): 'high' | 'medium' | 'low' {
-  const domain = displayLink.toLowerCase() || new URL(url).hostname.toLowerCase();
+function assessCredibility(url: string): 'high' | 'medium' | 'low' {
+  if (!url) return 'low';
 
-  const isCredible = CREDIBLE_SOURCES.some(source =>
-    domain.includes(source.toLowerCase())
-  );
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
 
-  if (isCredible) return 'high';
+    const isCredible = CREDIBLE_SOURCES.some(source =>
+      hostname.includes(source.toLowerCase())
+    );
 
-  // Official club domains
-  if (domain.includes('.fc.') || domain.includes('official')) return 'high';
+    if (isCredible) return 'high';
 
-  // Well-known sports sites
-  if (domain.includes('sport') || domain.includes('football') || domain.includes('soccer')) {
+    // Official club domains
+    if (hostname.includes('.fc.') || hostname.includes('official')) return 'high';
+
+    // Well-known sports sites
+    if (hostname.includes('sport') || hostname.includes('football') ||
+        hostname.includes('soccer')) {
+      return 'medium';
+    }
+
     return 'medium';
+  } catch {
+    return 'low';
   }
-
-  return 'medium';
 }
 
 export async function deepSearch(
@@ -111,12 +79,12 @@ export async function deepSearch(
 
   // Search for each query
   for (const query of queries) {
-    const searchResults = await searchGoogle(query);
+    const searchResults = await searchDuckDuckGo(query);
 
     // Also create entity-specific searches
     const entitySearches = await Promise.all(
       entities.slice(0, 2).map(entity =>
-        searchGoogle(`${query} ${entity}`)
+        searchDuckDuckGo(`${query} ${entity}`)
       )
     );
 
@@ -132,7 +100,7 @@ export async function deepSearch(
       query,
       results: allResults.slice(0, 10),
       verifiedFacts,
-      conflictingReports: [], // Could add logic to detect contradictions
+      conflictingReports: [],
     });
   }
 
@@ -144,9 +112,8 @@ export async function verifyClaim(claim: string): Promise<{
   sources: SearchResult[];
   summary: string;
 }> {
-  const results = await searchGoogle(claim);
+  const results = await searchDuckDuckGo(claim);
 
-  // Simple verification logic - in production, use AI to analyze
   const highCredibilityCount = results.filter(r => r.credibility === 'high').length;
 
   return {
