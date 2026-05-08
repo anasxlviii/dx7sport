@@ -44,13 +44,30 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent | null> {
 
 async function scrapeFacebookPost(url: string): Promise<ScrapedContent | null> {
   try {
-    // Facebook requires authentication for most content
-    // We'll return a message asking for manual content
+    // Facebook requires a bot user-agent to return og tags without requiring login
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+      },
+      timeout: 10000,
+    });
+
+    const html = response.data;
+    const title = extractTitle(html) || 'Facebook Post';
+    
+    // Facebook puts the post content in og:description or sometimes title
+    const descriptionMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+    const text = descriptionMatch ? descriptionMatch[1] : title;
+    
+    // Extract og:image
+    const imageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+    const images = imageMatch ? [imageMatch[1].replace(/&amp;/g, '&')] : [];
+
     return {
-      text: '',
-      title: 'Facebook Post',
+      text,
+      title,
       url,
-      images: [],
+      images,
     };
   } catch (error) {
     console.error('Failed to scrape Facebook:', error);

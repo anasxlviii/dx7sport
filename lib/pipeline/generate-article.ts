@@ -1,9 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, Type, Schema } from '@google/genai';
 import type { ExtractedTopic } from './extract-topic';
-import type { FactCheckResult } from './deep-search';
+import { duckduckgoSearch } from './deep-search';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+const client = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || '' });
 
 export interface GeneratedArticle {
   title: string;
@@ -21,56 +20,80 @@ export interface GeneratedArticle {
   }>;
 }
 
-const SYSTEM_PROMPT = `You are a professional football journalist. Write engaging, well-researched articles.
-
-Guidelines:
-- Write in a clear, engaging style suitable for football fans
-- Use the provided search results to cite real sources
-- Structure articles with clear headings and sections
-- Include URLs as citations when using information from sources
-- Include a "Key Facts" box with important statistics
-- Write for an audience of passionate football fans
-- Keep paragraphs concise (2-3 sentences)
-- Use subheadings to break up longer content
-
-Return ONLY valid JSON in this exact format:
-{
-  "title": "SEO-friendly, engaging title",
-  "excerpt": "2-3 sentence summary for social media/search",
-  "content": "Full article content in markdown format with ## headings",
-  "sections": [
-    {"heading": "Section heading", "content": "Section content"}
-  ],
-  "factBox": "5-7 bullet points of key facts and stats",
-  "sources": [{"url": "source url", "title": "source title", "credibility": "high|medium|low"}]
-}`;
+const articleSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    title: {
+      type: Type.STRING,
+      description: "SEO-friendly, engaging title"
+    },
+    excerpt: {
+      type: Type.STRING,
+      description: "2-3 sentence summary for social media/search"
+    },
+    content: {
+      type: Type.STRING,
+      description: "Full article content in markdown format with ## headings"
+    },
+    sections: {
+      type: Type.ARRAY,
+      description: "Array of sections for the article",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          heading: { type: Type.STRING },
+          content: { type: Type.STRING }
+        },
+        required: ["heading", "content"]
+      }
+    },
+    factBox: {
+      type: Type.STRING,
+      description: "5-7 bullet points of key facts and stats"
+    },
+    sources: {
+      type: Type.ARRAY,
+      description: "Array of sources used",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          url: { type: Type.STRING },
+          title: { type: Type.STRING },
+          credibility: { type: Type.STRING, enum: ["high", "medium", "low"] }
+        },
+        required: ["url", "title", "credibility"]
+      }
+    }
+  },
+  required: ["title", "excerpt", "content", "sections", "factBox", "sources"]
+};
 
 export async function generateArticle(
-  topic: ExtractedTopic,
-  factChecks: FactCheckResult[] = []
+  topic: ExtractedTopic
 ): Promise<GeneratedArticle> {
   try {
-    // Prepare source context from search results
-    let sourceContext = '';
-    let verifiedFacts = '';
+    // 1. Perform DuckDuckGo Search
+    const searchQuery = topic.searchQueries.length > 0 ? topic.searchQueries[0] : topic.title;
+    const rawSearchContext = await duckduckgoSearch(searchQuery);
 
-    if (factChecks && factChecks.length > 0) {
-      sourceContext = factChecks
-        .map(fc =>
-          fc.results
-            .slice(0, 3)
-            .map(r => `- [${r.title}](${r.url}): ${r.snippet}`)
-            .join('\n')
-        )
-        .join('\n\n');
+    // 2. Build the strict prompt
+    const SYSTEM_PROMPT = `You are a professional football journalist for DX7 SPORT. 
+TODAY'S DATE IS ${new Date().toLocaleString('en-US')}.
 
-      verifiedFacts = factChecks
-        .map(fc => fc.verifiedFacts)
-        .flat()
-        .join('\n');
-    }
+CRITICAL ANTI-HALLUCINATION PROTOCOL:
+- Prioritize news from the last 24-48 hours.
+- DO NOT return news from 2024 or 2025 unless the topic specifically asks for a historical event.
+- Base your report ONLY on the provided context below.
+- If the context mentions a transfer or event, treat it as CURRENT news for May 2026.
 
-    const hasRealSources = factChecks && factChecks.length > 0 && factChecks.some(fc => fc.results.length > 0);
+LANGUAGE AND WRITING RULES:
+1. Write the entire article in FUSHA ARABIC (Modern Standard Arabic).
+2. ONLY use Western numerals (0-9) for all numbers. Do NOT use Eastern Arabic numerals (٠-٩).
+3. Be fully autonomous: write the COMPLETE article content yourself. DO NOT leave placeholders, DO NOT ask the user to fill in blanks, and DO NOT leave sections empty.
+
+Write in a clear, engaging style suitable for football fans.
+Keep paragraphs concise (2-3 sentences).
+Do not use markdown code blocks like \`\`\`json, just return the data matching the schema.`;
 
     const prompt = `Write a football article based on this information:
 
@@ -81,58 +104,23 @@ export async function generateArticle(
 - Entities: ${topic.entities.join(', ')}
 - Key Questions to Address: ${topic.keyQuestions.join(', ')}
 
-${hasRealSources ? `
-**Live Search Results from DuckDuckGo:**
-${sourceContext}
+**LIVE SEARCH CONTEXT (DuckDuckGo News Snippets from the past week):**
+${rawSearchContext ? rawSearchContext : 'No recent news found. Rely on verified knowledge.'}
+`;
 
-**Verified Facts:**
-${verifiedFacts || 'Using search results above'}
-` : `
-**Note:** No live search results available. Use your internal knowledge.
-`}
+    const result = await client.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\n${prompt}` }] }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: articleSchema,
+        temperature: 0.4
+      }
+    });
 
-**Requirements:**
-1. Write a compelling headline that captures attention
-2. Start with a strong lead paragraph
-3. Address the key questions mentioned above
-4. ${hasRealSources ? 'Use the search results as sources and cite them' : 'Use your football knowledge for facts'}
-5. Include relevant statistics and recent information
-6. End with a conclusion or question to engage readers
-7. Format as markdown with proper headings
-8. ${hasRealSources ? 'Include source links in the article' : 'No source links needed'}`;
+    const responseText = result.text?.trim() || '{}';
+    return JSON.parse(responseText);
 
-    const result = await model.generateContent([SYSTEM_PROMPT, prompt]);
-    const response = result.response.text().trim();
-
-    // Clean and parse JSON
-    const cleanJson = response
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-
-    const parsed = JSON.parse(cleanJson);
-
-    // Collect sources from fact checks
-    const sources = hasRealSources
-      ? factChecks
-          .flatMap(fc => fc.results)
-          .filter((r, i, arr) => arr.findIndex(s => s.url === r.url) === i)
-          .slice(0, 10)
-          .map(r => ({
-            url: r.url,
-            title: r.title,
-            credibility: r.credibility,
-          }))
-      : [];
-
-    return {
-      title: parsed.title,
-      excerpt: parsed.excerpt,
-      content: parsed.content,
-      sections: parsed.sections || [],
-      factBox: parsed.factBox,
-      sources,
-    };
   } catch (error) {
     console.error('Error generating article:', error);
     throw error;
@@ -143,18 +131,11 @@ export async function regenerateArticle(
   originalContent: string,
   feedback: string
 ): Promise<string> {
-  const prompt = `Revise this football article based on the feedback:
-
-**Original Article:**
-${originalContent}
-
-**Feedback for Revision:**
-${feedback}
-
-Return ONLY the revised article content in markdown format.`;
-
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  const result = await client.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts: [{ text: `Revise this article based on feedback: ${feedback}\n\nContent: ${originalContent}` }] }]
+  });
+  return result.text || '';
 }
 
 export async function optimizeForSEO(content: string, topic: string): Promise<{
@@ -162,21 +143,11 @@ export async function optimizeForSEO(content: string, topic: string): Promise<{
   metaDescription: string;
   keywords: string[];
 }> {
-  const prompt = `Analyze this football article and provide SEO optimization:
-
-**Article Topic:** ${topic}
-**Content:** ${content.slice(0, 2000)}
-
-Return JSON with:
-{
-  "title": "SEO-optimized title (50-60 characters)",
-  "metaDescription": "Meta description (150-160 characters)",
-  "keywords": ["array of 5-10 relevant keywords"]
-}`;
-
-  const result = await model.generateContent(prompt);
-  const response = result.response.text().trim();
-  const cleanJson = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
+  const result = await client.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts: [{ text: `Optimize this for SEO: ${content.slice(0, 2000)}` }] }]
+  });
+  const responseText = result.text?.trim() || '{}';
+  const cleanJson = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   return JSON.parse(cleanJson);
 }

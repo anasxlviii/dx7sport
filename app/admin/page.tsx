@@ -59,53 +59,60 @@ export default function AdminDashboard() {
   };
 
   const categoryLabels = {
-    news: 'News',
-    comparison: 'Comparison',
-    poll: 'Poll',
-    match_report: 'Match Report',
-    transfer: 'Transfer',
+    news: 'أخبار',
+    comparison: 'مقارنات',
+    poll: 'استطلاع',
+    match_report: 'تقرير مباراة',
+    transfer: 'انتقالات',
+  };
+
+  const statusLabels = {
+    all: 'الكل',
+    draft: 'مسودة',
+    published: 'منشور',
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" dir="rtl">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-end mb-12">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-1">Manage your football content</p>
+          <h2 className="text-xs font-bold text-lime uppercase tracking-[0.3em] mb-2">مركز القيادة</h2>
+          <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase">لوحة التحكم</h1>
         </div>
         <Link
           href="/admin/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          className="bg-lime text-black px-6 py-2.5 font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors"
         >
-          + New Article
+          + إضافة مقال جديد
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+      <div className="dxt-card p-6 mb-8">
+        <div className="flex flex-col sm:flex-row gap-6">
+          <div className="flex-1 relative">
             <input
               type="text"
-              placeholder="Search articles..."
+              placeholder="بحث في الأخبار..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full bg-black border border-border-subtle px-4 py-2.5 text-sm text-white focus:outline-none focus:border-lime transition-colors"
+              dir="auto"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 p-1 bg-black border border-border-subtle">
             {['all', 'draft', 'published'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg capitalize transition ${
+                className={`px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all ${
                   filter === status
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-lime text-black'
+                    : 'text-gray-500 hover:text-white'
                 }`}
               >
-                {status}
+                {statusLabels[status as keyof typeof statusLabels]}
               </button>
             ))}
           </div>
@@ -114,82 +121,86 @@ export default function AdminDashboard() {
 
       {/* Articles List */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="text-center py-24">
+          <div className="inline-block animate-spin w-8 h-8 border-2 border-lime border-t-transparent rounded-full"></div>
         </div>
       ) : articles.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-600">No articles found. Create your first one!</p>
+        <div className="dxt-card p-24 text-center border-dashed">
+          <p className="text-gray-500 uppercase tracking-widest font-bold">لا توجد سجلات متاحة حالياً.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="dxt-card overflow-hidden">
+          <table className="min-w-full divide-y divide-border-subtle">
+            <thead className="bg-black/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Article
+                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                  عنوان المقال
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
+                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                  القسم
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                  الحالة
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
+                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                  التاريخ
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                <th className="px-8 py-5 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                  إجراءات
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-border-subtle">
               {articles.map((article) => (
-                <tr key={article.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div>
+                <tr key={article.id} className="hover:bg-lime/[0.02] transition-colors group">
+                  <td className="px-8 py-6">
+                    <div className="max-w-md">
                       <Link
                         href={`/admin/article/${article.id}`}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                        className="text-sm font-bold text-white uppercase tracking-tight group-hover:text-lime transition-colors"
                       >
                         {article.title}
                       </Link>
                       {article.excerpt && (
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-1 italic font-medium">
                           {article.excerpt}
                         </p>
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">
+                  <td className="px-8 py-6 whitespace-nowrap">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                       {categoryLabels[article.category as keyof typeof categoryLabels] || article.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-8 py-6 whitespace-nowrap">
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        statusColors[article.status as keyof typeof statusColors] || statusColors.draft
+                      className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                        article.status === 'published'
+                          ? 'border-lime text-lime'
+                          : article.status === 'draft'
+                          ? 'border-gray-700 text-gray-500'
+                          : 'border-red-900 text-red-500'
                       }`}
                     >
-                      {article.status}
+                      {statusLabels[article.status as keyof typeof statusLabels] || article.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(article.createdAt).toLocaleDateString()}
+                  <td className="px-8 py-6 whitespace-nowrap text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                    {new Date(article.createdAt).toLocaleDateString('ar-EG')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-8 py-6 whitespace-nowrap text-left text-sm font-medium">
                     <Link
                       href={`/admin/article/${article.id}`}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
+                      className="text-white hover:text-lime ml-6 text-xs font-bold uppercase tracking-widest transition-colors"
                     >
-                      Edit
+                      تعديل
                     </Link>
                     <button
                       onClick={() => deleteArticle(article.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-red-900 hover:text-red-600 text-xs font-bold uppercase tracking-widest transition-colors"
                     >
-                      Delete
+                      حذف
                     </button>
                   </td>
                 </tr>

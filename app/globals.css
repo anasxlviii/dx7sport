@@ -1,26 +1,50 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ffffff;
+  --lime-green: #b3d400;
+  --dark-gray: #121212;
+  --border-gray: #262626;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-lime: var(--lime-green);
+  --color-dark-surface: var(--dark-gray);
+  --color-border-subtle: var(--border-gray);
+  --font-sans: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-cairo), system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Custom DXT Sporty Elements */
+.dxt-gradient-text {
+  background: linear-gradient(to bottom, #ffffff 50%, var(--lime-green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dxt-hero-pattern {
+  background-image: 
+    radial-gradient(circle at 2px 2px, rgba(179, 212, 0, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.dxt-card {
+  background: var(--dark-gray);
+  border: 1px solid var(--border-gray);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dxt-card:hover {
+  border-color: var(--lime-green);
+  box-shadow: 0 0 20px rgba(179, 212, 0, 0.1);
+  transform: translateY(-2px);
 }

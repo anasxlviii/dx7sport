@@ -3,43 +3,42 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  // Simple password-based auth
-  // In production, use proper auth (NextAuth.js, etc.)
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       {/* Admin Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-black border-b border-border-subtle sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-8">
-              <Link href="/" className="text-xl font-bold text-blue-600">
-                ⚽ Football Blog
+              <Link href="/admin" className="flex items-center gap-2">
+                <span className="text-xl font-black italic tracking-tighter text-white">DX</span>
+                <span className="text-xl font-black italic tracking-tighter text-lime">7</span>
+                <span className="text-[10px] font-bold text-lime uppercase tracking-widest ml-1">Admin</span>
               </Link>
               <nav className="hidden md:flex gap-6">
                 <Link
                   href="/admin"
-                  className="text-gray-700 hover:text-blue-600 transition"
+                  className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition"
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/admin/new"
-                  className="text-gray-700 hover:text-blue-600 transition"
+                  className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition"
                 >
-                  New Article
+                  Generate New
                 </Link>
               </nav>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Admin Panel</span>
-            </div>
+            <Link href="/" className="text-xs font-bold text-gray-600 hover:text-white uppercase tracking-widest">
+              View Site →
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main>{children}</main>
+      <main className="py-8">{children}</main>
     </div>
   );
 }

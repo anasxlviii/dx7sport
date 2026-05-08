@@ -4,6 +4,8 @@ import { articles, sources } from '@/lib/db/schema';
 import { eq, desc, like, or, and } from 'drizzle-orm';
 import slugify from 'slugify';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/articles - Fetch articles with filtering
 export async function GET(request: NextRequest) {
   try {

@@ -2,49 +2,54 @@ import Link from 'next/link';
 
 export default function Header() {
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-black border-b border-border-subtle sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl">⚽</span>
-            <span className="text-xl font-bold text-gray-900">
-              Football Content
-            </span>
+        <div className="flex justify-between items-center h-20">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="flex flex-col leading-none">
+              <div className="flex items-center gap-0.5">
+                <span className="text-3xl font-black italic tracking-tighter text-white group-hover:text-lime transition-colors">DX</span>
+                <span className="text-3xl font-black italic tracking-tighter text-lime group-hover:text-white transition-colors">7</span>
+              </div>
+              <span className="text-[10px] font-bold text-lime uppercase tracking-[0.3em] ml-0.5">SPORT</span>
+            </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-8">
             <Link
               href="/"
-              className="text-gray-700 hover:text-blue-600 transition"
+              className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-colors"
             >
-              Home
+              الرئيسية
             </Link>
             <Link
               href="/category/news"
-              className="text-gray-700 hover:text-blue-600 transition"
+              className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-colors"
             >
-              News
+              الأخبار
             </Link>
             <Link
               href="/category/transfer"
-              className="text-gray-700 hover:text-blue-600 transition"
+              className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-colors"
             >
-              Transfers
+              الانتقالات
             </Link>
             <Link
               href="/category/comparison"
-              className="text-gray-700 hover:text-blue-600 transition"
+              className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-colors"
             >
-              Comparisons
+              المقارنات
             </Link>
           </nav>
 
-          <Link
-            href="/admin"
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Admin
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/admin"
+              className="px-4 py-1.5 text-xs font-bold uppercase tracking-widest border border-border-subtle text-gray-500 hover:border-lime hover:text-lime transition-all"
+            >
+              لوحة التحكم
+            </Link>
+          </div>
         </div>
       </div>
     </header>

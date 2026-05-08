@@ -7,9 +7,9 @@ export async function POST(request: NextRequest) {
 
     const { postContent, postUrl } = body;
 
-    if (!postContent) {
+    if (!postContent && !postUrl) {
       return NextResponse.json(
-        { error: 'postContent is required' },
+        { error: 'Either postContent or postUrl is required' },
         { status: 400 }
       );
     }

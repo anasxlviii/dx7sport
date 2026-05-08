@@ -13,8 +13,8 @@ export default function NewArticlePage() {
   const [error, setError] = useState('');
 
   async function runPipeline() {
-    if (!postContent.trim()) {
-      setError('Please enter some content');
+    if (!postContent.trim() && !postUrl.trim()) {
+      setError('Please enter either a URL or raw content');
       return;
     }
 
@@ -54,23 +54,23 @@ export default function NewArticlePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Header */}
-      <div className="mb-8">
-        <Link href="/admin" className="text-blue-600 hover:text-blue-800">
+      <div className="mb-12">
+        <Link href="/admin" className="text-xs font-bold uppercase tracking-widest text-lime hover:text-white transition-colors">
           ← Back to Dashboard
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900 mt-4">Create New Article</h1>
-        <p className="text-gray-600 mt-1">
-          Paste a Facebook post and let AI create a researched article
+        <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase mt-6">Generate Intel</h1>
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-2">
+          Transform raw social data into tactical reports
         </p>
       </div>
 
       {/* Input Form */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Facebook Post URL (optional)
+      <div className="dxt-card p-10 mb-8">
+        <div className="mb-8">
+          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-3">
+            Source URL (optional)
           </label>
           <input
             type="url"
@@ -78,68 +78,73 @@ export default function NewArticlePage() {
             value={postUrl}
             onChange={(e) => setPostUrl(e.target.value)}
             disabled={running}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+            className="w-full bg-black border border-border-subtle px-6 py-3 text-sm text-white focus:outline-none focus:border-lime transition-all disabled:opacity-50"
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Post Content *
+        <div className="mb-8">
+          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-3">
+            Raw Intel Content (Optional if URL provided)
           </label>
           <textarea
-            placeholder="Paste the Facebook post content here..."
+            placeholder="Paste the raw social post here..."
             value={postContent}
             onChange={(e) => setPostContent(e.target.value)}
             disabled={running}
             rows={8}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+            className="w-full bg-black border border-border-subtle px-6 py-4 text-sm text-white focus:outline-none focus:border-lime transition-all disabled:opacity-50 font-medium"
           />
-          <p className="text-sm text-gray-500 mt-1">
-            News, comparisons, polls, or match reports work best
+          <p className="text-[10px] font-bold text-gray-600 mt-3 uppercase tracking-widest italic">
+            Best results with: Breaking news, comparisons, or match rumors.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          <div className="mb-8 p-4 border border-red-900 bg-red-950/20 text-red-500 text-xs font-bold uppercase tracking-widest">
             {error}
           </div>
         )}
 
         <button
           onClick={runPipeline}
-          disabled={running || !postContent.trim()}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+          disabled={running || (!postContent.trim() && !postUrl.trim())}
+          className="w-full bg-lime text-black py-4 font-black uppercase tracking-[0.2em] text-sm hover:bg-white transition-all disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(179,212,0,0.2)]"
         >
-          {running ? 'Generating Article...' : 'Generate Article'}
+          {running ? 'Processing Intel...' : 'Generate Article'}
         </button>
       </div>
 
       {/* Progress Steps */}
       {steps.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pipeline Progress</h2>
-          <div className="space-y-3">
+        <div className="dxt-card p-10 border-lime/20">
+          <h2 className="text-xs font-black text-lime uppercase tracking-[0.4em] mb-8">Pipeline Ops</h2>
+          <div className="space-y-6">
             {steps.map((step, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                  step.status === 'completed' ? 'bg-green-500 text-white' :
-                  step.status === 'running' ? 'bg-blue-500 text-white animate-pulse' :
-                  step.status === 'failed' ? 'bg-red-500 text-white' :
-                  'bg-gray-200 text-gray-600'
+              <div key={i} className="flex items-center gap-6 group">
+                <div className={`w-8 h-8 flex items-center justify-center border font-black text-xs ${
+                  step.status === 'completed' ? 'border-lime text-lime' :
+                  step.status === 'running' ? 'border-white text-white animate-pulse' :
+                  step.status === 'failed' ? 'border-red-600 text-red-600' :
+                  'border-border-subtle text-gray-700'
                 }`}>
                   {step.status === 'completed' ? '✓' :
-                   step.status === 'running' ? '→' :
-                   step.status === 'failed' ? '✗' :
+                   step.status === 'running' ? '>>' :
+                   step.status === 'failed' ? '!!' :
                    i + 1}
                 </div>
-                <span className={`flex-1 ${
-                  step.status === 'failed' ? 'text-red-600' : 'text-gray-900'
-                }`}>
-                  {step.name}
-                </span>
-                {step.error && (
-                  <span className="text-sm text-red-600">{step.error}</span>
-                )}
+                <div className="flex-1">
+                  <span className={`text-xs font-bold uppercase tracking-widest ${
+                    step.status === 'failed' ? 'text-red-600' : 
+                    step.status === 'running' ? 'text-white' :
+                    step.status === 'completed' ? 'text-gray-300' :
+                    'text-gray-700'
+                  }`}>
+                    {step.name}
+                  </span>
+                  {step.error && (
+                    <p className="text-[10px] text-red-600 font-bold uppercase mt-1 italic">{step.error}</p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -147,21 +152,22 @@ export default function NewArticlePage() {
       )}
 
       {/* Example Content */}
-      <div className="mt-6 bg-blue-50 rounded-lg p-4">
-        <h3 className="font-medium text-blue-900 mb-2">Example Content to Try:</h3>
-        <p className="text-sm text-blue-800">
-          "Breaking: Real Madrid is close to signing Kylian Mbappé from PSG. The 25-year-old
-          French striker has been linked with a move to Spain for months. Would this be
-          the final piece for Madrid's Champions League dreams?"
-        </p>
-        <button
-          onClick={() => setPostContent("Breaking: Real Madrid is close to signing Kylian Mbappé from PSG. The 25-year-old French striker has been linked with a move to Spain for months. Would this be the final piece for Madrid's Champions League dreams?")}
-          className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-          disabled={running}
-        >
-          Use this example →
-        </button>
-      </div>
+      {!running && (
+        <div className="mt-8 dxt-card p-8 border-border-subtle border-dashed bg-transparent opacity-60 hover:opacity-100 transition-opacity">
+          <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 italic">Simulation Content:</h3>
+          <p className="text-xs text-gray-400 font-medium leading-relaxed italic">
+            "Breaking: Real Madrid is close to signing Kylian Mbappé from PSG. The 25-year-old
+            French striker has been linked with a move to Spain for months. Would this be
+            the final piece for Madrid's Champions League dreams?"
+          </p>
+          <button
+            onClick={() => setPostContent("Breaking: Real Madrid is close to signing Kylian Mbappé from PSG. The 25-year-old French striker has been linked with a move to Spain for months. Would this be the final piece for Madrid's Champions League dreams?")}
+            className="mt-4 text-[10px] font-black text-lime uppercase tracking-[0.2em] hover:text-white transition-colors"
+          >
+            Load Intel →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
