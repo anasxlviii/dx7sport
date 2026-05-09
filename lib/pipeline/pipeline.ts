@@ -1,6 +1,7 @@
 import { extractTopic, type ExtractedTopic } from './extract-topic';
 import { scrapeUrl } from './scraper';
 import { generateArticle, type GeneratedArticle } from './generate-article';
+import { getBestImage } from './image-search';
 import { db } from '../db/db';
 import { articles, sources } from '../db/schema';
 import slugify from 'slugify';
@@ -8,6 +9,7 @@ import slugify from 'slugify';
 export interface PipelineInput {
   postContent?: string;
   postUrl?: string;
+  imageBase64?: string;
 }
 
 export interface PipelineResult {
@@ -55,13 +57,15 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
           steps[0].status = 'completed';
           steps[0].result = { scraped: true, title: scrapedData.title, image: scrapedData.images?.[0] };
         } else {
+          actualContent = actualContent || `Source Link: ${input.postUrl}`;
           steps[0].status = 'completed';
-          steps[0].result = { scraped: false, message: 'Could not scrape, using provided content' };
+          steps[0].result = { scraped: false, message: 'Could not scrape, using provided link' };
         }
         steps[0].completedAt = new Date();
       } catch (error) {
+        actualContent = actualContent || `Source Link: ${input.postUrl}`;
         steps[0].status = 'completed';
-        steps[0].result = { scraped: false, message: 'Scraping failed, using provided content' };
+        steps[0].result = { scraped: false, message: 'Scraping failed, using provided link' };
         steps[0].completedAt = new Date();
       }
     } else {
@@ -76,10 +80,10 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
     let topic: ExtractedTopic;
     try {
-      if (!actualContent.trim()) {
-        throw new Error("No content to process. Please provide text or a valid URL.");
+      if (!actualContent.trim() && !input.imageBase64) {
+        throw new Error("No content to process. Please provide text, a URL, or an image.");
       }
-      topic = await extractTopic(actualContent);
+      topic = await extractTopic(actualContent, input.imageBase64);
       steps[1].status = 'completed';
       steps[1].result = topic;
       steps[1].completedAt = new Date();
@@ -95,7 +99,6 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
     let generated: GeneratedArticle;
     try {
-      // We no longer pass factChecks because generateArticle uses built-in Google Search grounding
       generated = await generateArticle(topic);
       steps[2].status = 'completed';
       steps[2].result = { title: generated.title };
@@ -106,13 +109,28 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       throw error;
     }
 
+    // Step 3.5: Search for real images
+    let featuredImage: string | null = input.imageBase64 || scrapedData?.images?.[0] || null;
+    if (!featuredImage) {
+      try {
+        // Build a good English image search query from the entities
+        const imageQuery = [...topic.entities.slice(0, 2), 'football'].join(' ');
+        featuredImage = await getBestImage(imageQuery);
+        console.log('[Pipeline] Image found:', featuredImage ? 'yes' : 'no');
+      } catch {
+        console.warn('[Pipeline] Image search failed, continuing without image');
+      }
+    }
+
     // Step 4: Save to Database
     steps[3].status = 'running';
     steps[3].startedAt = new Date();
 
     try {
       let slug = slugify(generated.title, { lower: true, strict: true });
-      let uniqueSlug = `${slug}-${Date.now().toString().slice(-4)}`;
+      // Truncate slug to 50 chars to keep URLs short and safe for Facebook/Social crawlers
+      let shortSlug = slug.slice(0, 50);
+      let uniqueSlug = `${shortSlug}-${Date.now().toString().slice(-4)}`;
 
       const [article] = await db
         .insert(articles)
@@ -125,10 +143,11 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
           category: topic.category,
           sourcePostUrl: input.postUrl,
           sourcePostText: actualContent,
-          featuredImage: scrapedData?.images?.[0] || null,
+          featuredImage: featuredImage,
           metadata: JSON.stringify({
             factBox: generated.factBox,
             sections: generated.sections,
+            quizData: generated.quizData,
           }),
         })
         .returning();

@@ -48,3 +48,30 @@ body {
   box-shadow: 0 0 20px rgba(179, 212, 0, 0.1);
   transform: translateY(-2px);
 }
+
+.dxt-card:active {
+  transform: scale(0.98) translateY(0);
+  opacity: 0.8;
+}
+
+/* Global Haptic Feedback */
+button:active, 
+a:active,
+.interactive-tap:active {
+  transform: scale(0.97);
+  transition: transform 0.05s ease-out;
+}
+
+/* Ensure transition smoothness */
+button, a, .dxt-card {
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+              border-color 0.2s, 
+              box-shadow 0.2s, 
+              opacity 0.2s;
+}
+
+@keyframes progress {
+  0% { transform: translateX(100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
+}

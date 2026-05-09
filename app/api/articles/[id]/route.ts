@@ -73,12 +73,9 @@ export async function PUT(
     const body = await request.json();
     const { title, content, excerpt, status, category, featuredImage } = body;
 
-    // Build update object
+    // Build update object - NEVER regenerate slug (it would break all URLs)
     const updateData: any = {};
-    if (title !== undefined) {
-      updateData.title = title;
-      updateData.slug = slugify(title, { lower: true, strict: true });
-    }
+    if (title !== undefined) updateData.title = title;
     if (content !== undefined) updateData.content = content;
     if (excerpt !== undefined) updateData.excerpt = excerpt;
     if (status !== undefined) updateData.status = status;
@@ -87,7 +84,7 @@ export async function PUT(
 
     updateData.updatedAt = new Date();
 
-    if (status === 'published' && !updateData.publishedAt) {
+    if (status === 'published') {
       updateData.publishedAt = new Date();
     }
 

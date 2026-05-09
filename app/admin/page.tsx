@@ -80,12 +80,20 @@ export default function AdminDashboard() {
           <h2 className="text-xs font-bold text-lime uppercase tracking-[0.3em] mb-2">مركز القيادة</h2>
           <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase">لوحة التحكم</h1>
         </div>
-        <Link
-          href="/admin/new"
-          className="bg-lime text-black px-6 py-2.5 font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors"
-        >
-          + إضافة مقال جديد
-        </Link>
+        <div className="flex gap-4">
+          <Link
+            href="/admin/entertainment"
+            className="bg-zinc-900 text-white border border-zinc-800 px-6 py-2.5 font-bold uppercase tracking-widest text-xs hover:border-lime hover:text-lime transition-all"
+          >
+            🎮 إدارة التسلية
+          </Link>
+          <Link
+            href="/admin/new"
+            className="bg-lime text-black px-6 py-2.5 font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors"
+          >
+            + إضافة مقال جديد
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

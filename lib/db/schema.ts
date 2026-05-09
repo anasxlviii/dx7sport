@@ -43,3 +43,13 @@ export type Source = typeof sources.$inferSelect;
 export type NewSource = typeof sources.$inferInsert;
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
+
+export const settings = pgTable('settings', {
+  id: serial('id').primaryKey(),
+  key: varchar('key', { length: 100 }).notNull().unique(),
+  value: text('value'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export type Setting = typeof settings.$inferSelect;
+

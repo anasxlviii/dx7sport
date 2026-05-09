@@ -4,6 +4,33 @@ import { duckduckgoSearch } from './deep-search';
 
 const client = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || '' });
 
+/**
+ * Sanitizes AI-generated article content:
+ * 1. Converts literal \n escape sequences to real newlines
+ * 2. Ensures markdown headings (##, ###) have blank lines before/after them
+ * 3. Removes stray backslash artifacts
+ */
+function sanitizeArticleContent(raw: string): string {
+  let text = raw;
+
+  // Step 1: Convert literal escaped newlines (\\n) to real newlines
+  text = text.replace(/\\n/g, '\n');
+
+  // Step 2: Collapse excessive blank lines (more than 2) to exactly 2
+  text = text.replace(/\n{3,}/g, '\n\n');
+
+  // Step 3: Ensure headings always have a blank line before them
+  text = text.replace(/([^\n])\n(#{1,3} )/g, '$1\n\n$2');
+
+  // Step 4: Ensure headings always have a blank line after them
+  text = text.replace(/(#{1,3} .+)\n([^\n])/g, '$1\n\n$2');
+
+  // Step 5: Remove any remaining stray backslashes before punctuation
+  text = text.replace(/\\([.,،؛:؟!])/g, '$1');
+
+  return text.trim();
+}
+
 export interface GeneratedArticle {
   title: string;
   content: string;
@@ -18,6 +45,14 @@ export interface GeneratedArticle {
     title: string;
     credibility: string;
   }>;
+  quizData?: {
+    questions: Array<{
+      question: string;
+      options: string[];
+      correctAnswer: string;
+      hint?: string;
+    }>;
+  };
 }
 
 const articleSchema: Schema = {
@@ -33,7 +68,7 @@ const articleSchema: Schema = {
     },
     content: {
       type: Type.STRING,
-      description: "Full article content in markdown format with ## headings"
+      description: "Full article content in markdown format. For quizzes, explain the game rules."
     },
     sections: {
       type: Type.ARRAY,
@@ -49,7 +84,7 @@ const articleSchema: Schema = {
     },
     factBox: {
       type: Type.STRING,
-      description: "5-7 bullet points of key facts and stats"
+      description: "5-7 bullet points of key facts"
     },
     sources: {
       type: Type.ARRAY,
@@ -63,6 +98,41 @@ const articleSchema: Schema = {
         },
         required: ["url", "title", "credibility"]
       }
+    },
+    quizData: {
+      type: Type.OBJECT,
+      description: "ONLY FOR QUIZZES: Structured data for the quiz game",
+      properties: {
+        type: { type: Type.STRING, enum: ["multiple_choice", "crossword"], description: "The type of game" },
+        questions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING, description: "The question or clue" },
+              options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "4 possible answers" },
+              correctAnswer: { type: Type.STRING, description: "The correct answer" },
+              hint: { type: Type.STRING },
+              imageUrl: { type: Type.STRING, description: "URL for a logo or player image" }
+            },
+            required: ["question", "options", "correctAnswer"]
+          }
+        },
+        crossword: {
+          type: Type.OBJECT,
+          properties: {
+            grid: { type: Type.ARRAY, items: { type: Type.ARRAY, items: { type: Type.STRING } }, description: "2D grid of letters or null" },
+            clues: {
+              type: Type.OBJECT,
+              properties: {
+                across: { type: Type.ARRAY, items: { type: Type.STRING } },
+                down: { type: Type.ARRAY, items: { type: Type.STRING } }
+              }
+            }
+          }
+        }
+      },
+      required: ["type"]
     }
   },
   required: ["title", "excerpt", "content", "sections", "factBox", "sources"]
@@ -89,10 +159,22 @@ CRITICAL ANTI-HALLUCINATION PROTOCOL:
 LANGUAGE AND WRITING RULES:
 1. Write the entire article in FUSHA ARABIC (Modern Standard Arabic).
 2. ONLY use Western numerals (0-9) for all numbers. Do NOT use Eastern Arabic numerals (٠-٩).
-3. Be fully autonomous: write the COMPLETE article content yourself. DO NOT leave placeholders, DO NOT ask the user to fill in blanks, and DO NOT leave sections empty.
+3. Be fully autonomous: write the COMPLETE article content yourself. DO NOT leave placeholders.
+4. The article MUST BE LONG AND IN-DEPTH. Aim for 800-1000 words. Provide extreme tactical depth, historical context, and deep analysis to keep readers engaged.
+5. SOURCES: Do NOT hallucinate sources. The \`sources\` array must ONLY contain actual URLs that appear in the LIVE SEARCH CONTEXT. If no real URL is provided, omit it or use the source domain only but never fabricate a fake specific article link.
 
 Write in a clear, engaging style suitable for football fans.
-Keep paragraphs concise (2-3 sentences).
+Keep paragraphs concise (2-3 sentences), but write many paragraphs to achieve the length requirement.
+
+QUIZ SPECIFIC RULES:
+- If category is 'quiz', the 'quizData' field MUST be populated.
+- Support 'multiple_choice' or 'crossword'.
+- For 'multiple_choice', always include 'imageUrl' for a logo or player if relevant.
+- For 'Guess the Team', use clues about their stadium, history, or color schemes.
+- For 'crossword', generate a 5x5 or 7x7 grid with football-related words in Arabic.
+- Ensure all content is in Fusha Arabic.
+- Ensure the data is up-to-date for May 2026.
+
 Do not use markdown code blocks like \`\`\`json, just return the data matching the schema.`;
 
     const prompt = `Write a football article based on this information:
@@ -119,7 +201,22 @@ ${rawSearchContext ? rawSearchContext : 'No recent news found. Rely on verified 
     });
 
     const responseText = result.text?.trim() || '{}';
-    return JSON.parse(responseText);
+    const parsed = JSON.parse(responseText);
+
+    // Sanitize content: the Gemini API sometimes returns literal \n escape
+    // sequences inside JSON string values instead of real newlines.
+    // Also ensure headings have blank lines before them for proper markdown parsing.
+    if (parsed.content) {
+      parsed.content = sanitizeArticleContent(parsed.content);
+    }
+    if (parsed.excerpt) {
+      parsed.excerpt = parsed.excerpt.replace(/\\n/g, ' ').replace(/\n+/g, ' ').trim();
+    }
+    if (parsed.factBox) {
+      parsed.factBox = parsed.factBox.replace(/\\n/g, '\n').trim();
+    }
+
+    return parsed;
 
   } catch (error) {
     console.error('Error generating article:', error);

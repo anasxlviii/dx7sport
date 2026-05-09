@@ -16,17 +16,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 <span className="text-[10px] font-bold text-lime uppercase tracking-widest ml-1">Admin</span>
               </Link>
               <nav className="hidden md:flex gap-6">
-                <Link
-                  href="/admin"
-                  className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition"
-                >
+                <Link href="/admin" className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition">
                   Dashboard
                 </Link>
-                <Link
-                  href="/admin/new"
-                  className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition"
-                >
+                <Link href="/admin/new" className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition">
                   Generate New
+                </Link>
+                <Link href="/admin/ads" className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition">
+                  الإعلانات
                 </Link>
               </nav>
             </div>

@@ -3,7 +3,7 @@ import { GoogleGenAI, Type, Schema } from '@google/genai';
 const client = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || '' });
 
 export interface ExtractedTopic {
-  category: 'news' | 'comparison' | 'poll' | 'match_report' | 'transfer';
+  category: 'news' | 'comparison' | 'poll' | 'match_report' | 'transfer' | 'quiz';
   title: string;
   entities: string[];
   keyQuestions: string[];
@@ -16,7 +16,7 @@ const topicSchema: Schema = {
   properties: {
     category: {
       type: Type.STRING,
-      description: "news | comparison | poll | match_report | transfer"
+      description: "news | comparison | poll | match_report | transfer | quiz"
     },
     title: {
       type: Type.STRING,
@@ -45,21 +45,38 @@ const topicSchema: Schema = {
   required: ["category", "title", "entities", "keyQuestions", "searchQueries", "summary"]
 };
 
-export async function extractTopic(postContent: string): Promise<ExtractedTopic> {
+export async function extractTopic(postContent: string, imageBase64?: string): Promise<ExtractedTopic> {
   try {
     const SYSTEM_PROMPT = `You are a football content expert for DX7 SPORT. 
 TODAY'S DATE IS ${new Date().toLocaleString('en-US')}.
 
-Analyze the given Facebook post and extract structured information.
+Analyze the given input (text, URL, or image) and extract structured information about the football news it represents.
+If an image is provided, identify the players, teams, or match event depicted and use it to define the topic.
 Always interpret "this season" or "next month" relative to the current date.`;
+
+    const parts: any[] = [{ text: `${SYSTEM_PROMPT}\n\nInput Context:\n${postContent || 'Analyze the provided image for football news.'}` }];
+    
+    if (imageBase64) {
+      // Split base64 to get data and mimeType if needed, but Gemini usually expects just the data
+      const data = imageBase64.split(',')[1] || imageBase64;
+      const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
+      
+      parts.push({
+        inlineData: {
+          data,
+          mimeType
+        }
+      });
+    }
 
     const result = await client.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\nFacebook post content:\n${postContent}` }] }],
+      contents: [{ role: 'user', parts }],
       config: {
         responseMimeType: 'application/json',
         responseSchema: topicSchema,
-        temperature: 0.2
+        temperature: 0.2,
+        tools: [{ googleSearch: {} }]
       }
     });
 

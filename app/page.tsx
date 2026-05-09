@@ -1,140 +1,225 @@
 import Link from 'next/link';
 import { db } from '@/lib/db/db';
-import { articles } from '@/lib/db/schema';
+import { articles as articlesTable, settings } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
+import { ArticleCard } from '@/components/ArticleCard';
+import { FeedFilter } from '@/components/FeedFilter';
+import { AdScriptInjector } from '@/components/AdScriptInjector';
 
-async function getPublishedArticles() {
-  const allArticles = await db
-    .select()
-    .from(articles)
-    .where(eq(articles.status, 'published'))
-    .orderBy(desc(articles.publishedAt))
-    .limit(12);
+export const revalidate = 60; // Revalidate every minute
 
-  return allArticles;
+async function getData(retries = 5) {
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      const [allArticles, allSettings] = await Promise.all([
+        db.select().from(articlesTable).where(eq(articlesTable.status, 'published')).orderBy(desc(articlesTable.id)).limit(40),
+        db.select().from(settings)
+      ]);
+
+      const settingsMap: Record<string, string> = {};
+      allSettings.forEach(s => settingsMap[s.key] = s.value || '');
+
+      return { allArticles, settingsMap };
+    } catch (err) {
+      console.error(`[Homepage] DB error (attempt ${i + 1}/${retries}):`, err);
+      if (i === retries - 1) return { allArticles: [], settingsMap: {} }; // Return empty instead of throwing to prevent build failure
+      // Longer wait for Neon to wake up if it's sleeping
+      const delay = Math.min(1000 * Math.pow(2, i), 5000); 
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  return { allArticles: [], settingsMap: {} };
 }
 
 export default async function Home() {
-  const articles = await getPublishedArticles();
-  const featuredArticle = articles.length > 0 ? articles[0] : null;
-  const feedArticles = articles.length > 1 ? articles.slice(1) : [];
+  const { allArticles, settingsMap } = await getData();
+  const featuredArticle = allArticles.length > 0 ? allArticles[0] : null;
+  const sidebarArticles = allArticles.slice(1, 4);
+  const feedArticles = allArticles.slice(4);
+
+  const homeBanner = settingsMap['ad_homepage_banner'];
+  const homeBannerEnabled = settingsMap['ad_homepage_banner_enabled'] === 'true';
 
   return (
     <div className="min-h-screen bg-black" dir="rtl">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-black py-16 dxt-hero-pattern">
+      <section className="relative overflow-hidden bg-black py-24 dxt-hero-pattern">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 text-center">
-          <div className="inline-block px-3 py-1 mb-6 border border-lime text-lime text-xs font-bold uppercase tracking-widest">
+          <div className="inline-block px-4 py-1.5 mb-8 border border-lime/50 text-lime text-[10px] font-black uppercase tracking-[0.4em] bg-lime/5">
             أخبار حصرية وتغطية شاملة
           </div>
-          <h1 className="text-5xl md:text-7xl font-black mb-6 italic tracking-tighter uppercase dxt-gradient-text leading-tight">
-            ارتقِ بمستوى <br /> متابعتك لكرة القدم
+          <h1 className="text-6xl md:text-8xl font-black mb-8 italic tracking-tighter uppercase dxt-gradient-text leading-[0.9]">
+            ارتقِ بمستوى <br /> متابعتك للكرة
           </h1>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto font-medium">
-            تحليلات عميقة، أخبار الانتقالات العاجلة، وتقارير المباريات التكتيكية للمشجع النخبوي.
+          <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto font-medium leading-[1.8] mb-12">
+            تحليلات تكتيكية عميقة، أخبار الانتقالات العاجلة، <br className="hidden md:block" /> وتقارير حصرية للمشجع النخبوي.
           </p>
+          <div className="flex justify-center gap-6">
+            <Link href="/category/news" className="bg-lime text-black px-10 py-4 font-black uppercase tracking-widest text-xs hover:bg-white transition-all transform hover:-translate-y-1">
+              آخر الأخبار
+            </Link>
+            <Link href="/category/transfer" className="border border-zinc-800 text-white px-10 py-4 font-black uppercase tracking-widest text-xs hover:bg-zinc-900 transition-all">
+              سوق الانتقالات
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex items-end justify-between mb-8">
+        <div className="flex items-end justify-between mb-12">
           <div>
-            <h2 className="text-sm font-bold text-lime uppercase tracking-widest mb-2">أبرز العناوين</h2>
-            <h3 className="text-4xl font-black italic tracking-tight text-white uppercase">آخر المستجدات</h3>
+            <h2 className="text-xs font-black text-lime uppercase tracking-[0.4em] mb-3">أبرز العناوين</h2>
+            <h3 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">آخر المستجدات</h3>
           </div>
-          <div className="h-px flex-1 bg-border-subtle mx-8 hidden md:block mb-4" />
+          <div className="h-px flex-1 bg-zinc-900 mx-10 hidden md:block mb-3" />
         </div>
 
-        {articles.length === 0 ? (
-          <div className="dxt-card rounded-none p-16 text-center border-dashed">
-            <p className="text-gray-500 uppercase tracking-widest font-bold">
-              لا توجد أخبار متاحة حالياً.
-            </p>
+        {allArticles.length === 0 ? (
+          <div className="border border-zinc-900 bg-zinc-950/50 p-24 text-center">
+            <p className="text-gray-600 uppercase tracking-[0.3em] font-black text-xs">لا توجد أخبار متاحة حالياً.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* Featured Article - Takes up 2 columns on large screens */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Featured Article */}
             {featuredArticle && (
               <div className="lg:col-span-2">
                 <Link
                   href={`/article/${featuredArticle.slug}`}
-                  className="group dxt-card flex flex-col h-full bg-dark-surface border-lime/30 relative overflow-hidden"
+                  className="group dxt-card flex flex-col h-full bg-zinc-950 border-zinc-900 relative overflow-hidden"
+                  style={{ minHeight: '500px' }}
                 >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-lime/5 rotate-45 translate-x-16 -translate-y-16" />
-                  <div className="p-10 flex-1 z-10">
-                    <div className="flex items-center gap-2 mb-6">
-                      <span className="w-3 h-3 bg-lime rounded-full shadow-[0_0_12px_rgba(179,212,0,0.8)] animate-pulse" />
-                      <span className="text-xs font-bold text-lime uppercase tracking-widest">
-                        الخبر الرئيسي | {featuredArticle.category === 'news' ? 'أخبار' : featuredArticle.category === 'transfer' ? 'انتقالات' : featuredArticle.category === 'match_report' ? 'تقارير المباريات' : featuredArticle.category === 'comparison' ? 'مقارنات' : featuredArticle.category}
+                  {featuredArticle.featuredImage ? (
+                    <div className="absolute inset-0 z-0">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent z-10" />
+                      <img
+                        src={featuredArticle.featuredImage}
+                        alt={featuredArticle.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                      />
+                    </div>
+                  ) : (
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-lime/5 rotate-45 translate-x-32 -translate-y-32 z-0" />
+                  )}
+                  <div className="p-12 flex-1 z-20 flex flex-col justify-end max-w-3xl">
+                    <div className="flex items-center gap-3 mb-6">
+                      <span className="w-2.5 h-2.5 bg-lime rounded-full shadow-[0_0_15px_rgba(179,212,0,0.9)] animate-pulse" />
+                      <span className="text-[10px] font-black text-lime uppercase tracking-[0.3em]">
+                        الخبر الرئيسي | {featuredArticle.category === 'news' ? 'أخبار' : featuredArticle.category === 'transfer' ? 'انتقالات' : featuredArticle.category === 'match_report' ? 'تقارير' : featuredArticle.category === 'comparison' ? 'مقارنات' : featuredArticle.category}
                       </span>
                     </div>
-                    <h3 className="text-3xl md:text-5xl font-black italic text-white leading-tight mb-6 group-hover:text-lime transition-colors">
+                    <h3 className="text-4xl md:text-6xl font-black italic text-white leading-[1.1] mb-8 group-hover:text-lime transition-colors tracking-tighter">
                       {featuredArticle.title}
                     </h3>
                     {featuredArticle.excerpt && (
-                      <p className="text-gray-300 text-lg font-medium leading-relaxed mb-8 border-r-2 border-lime pr-4">
+                      <p className="text-gray-300 text-lg md:text-xl font-medium leading-[1.8] mb-10 line-clamp-2 border-r-4 border-lime pr-6">
                         {featuredArticle.excerpt}
                       </p>
                     )}
                   </div>
-                  <div className="px-10 py-6 border-t border-border-subtle flex items-center justify-between text-xs font-bold uppercase tracking-widest text-gray-500 z-10">
+                  <div className="px-12 py-8 border-t border-zinc-900/50 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.3em] text-gray-500 z-20 bg-black/40 backdrop-blur-md">
                     <span>
                       {featuredArticle.publishedAt
                         ? new Date(featuredArticle.publishedAt).toLocaleDateString('ar-EG')
                         : new Date(featuredArticle.createdAt).toLocaleDateString('ar-EG')}
                     </span>
-                    <span className="group-hover:text-lime transition-colors text-lime">اقرأ التفاصيل ←</span>
+                    <span className="text-lime group-hover:translate-x-[-10px] transition-transform">اقرأ القصة الكاملة ←</span>
                   </div>
                 </Link>
               </div>
             )}
 
-            {/* Sidebar / Secondary Articles */}
-            <div className="flex flex-col gap-6">
-              {feedArticles.slice(0, 3).map((article) => (
+            {/* Sidebar */}
+            <div className="flex flex-col gap-8">
+              {sidebarArticles.map((article) => (
                 <ArticleCard key={article.id} article={article} compact={true} />
               ))}
             </div>
-
           </div>
         )}
 
-        {/* More Articles Grid */}
-        {feedArticles.length > 3 && (
-          <div className="mt-12 pt-12 border-t border-border-subtle">
-            <h3 className="text-2xl font-black italic tracking-tight text-white uppercase mb-8">المزيد من الأخبار</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {feedArticles.slice(3).map((article) => (
-                <ArticleCard key={article.id} article={article} compact={false} />
+        {/* Homepage Banner Ad */}
+        {homeBannerEnabled && homeBanner && (
+          <div className="my-20 flex flex-col items-center">
+            <p className="text-[9px] font-black uppercase tracking-[0.5em] text-zinc-800 mb-4">إعلان</p>
+            <div className="w-full max-w-5xl flex justify-center min-h-[90px]">
+              <AdScriptInjector code={homeBanner} />
+            </div>
+          </div>
+        )}
+
+        {/* Entertainment Promo Section */}
+        <section className="mt-32 relative overflow-hidden group">
+           <div className="absolute inset-0 bg-gradient-to-r from-lime/20 to-transparent z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+           <div className="bg-zinc-950 border border-zinc-900 p-12 md:p-20 relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
+              <div className="max-w-2xl text-center md:text-right">
+                 <h2 className="text-xs font-black text-lime uppercase tracking-[0.6em] mb-4">DX7 ARCADE</h2>
+                 <h3 className="text-5xl md:text-7xl font-black italic text-white tracking-tighter uppercase mb-6 leading-none">
+                    ساحة <span className="text-lime">الألعاب</span> والتحديات
+                 </h3>
+                 <p className="text-gray-500 text-lg font-medium leading-relaxed">
+                    اختبر معلوماتك الكروية في تحديات حصرية. خمن اللاعبين، حل الكلمات المتقاطعة، وتصدر قائمة الخبراء.
+                 </p>
+              </div>
+              <Link 
+                 href="/entertainment"
+                 className="px-16 py-6 bg-lime text-black font-black uppercase tracking-[0.5em] text-sm hover:bg-white hover:shadow-[0_0_50px_rgba(179,212,0,0.4)] transition-all active:scale-95 animate-pulse"
+              >
+                 العب الآن
+              </Link>
+           </div>
+        </section>
+
+        {/* Latest News Feed */}
+        {feedArticles.length > 0 && (
+          <div className="mt-24">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter flex items-center gap-4">
+                  <span className="w-12 h-1 bg-lime shadow-[0_0_15px_rgba(179,212,0,0.5)]" />
+                  آخر الأخبار العالمية
+                </h2>
+                <p className="text-gray-500 text-xs font-black uppercase tracking-[0.3em] mt-4 mr-16">تغطية شاملة لكل ما يحدث في عالم كرة القدم</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {feedArticles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
               ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* Category Links */}
-      <section className="bg-dark-surface border-t border-border-subtle py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-sm font-bold text-lime uppercase tracking-widest mb-12 text-center">تصفح الأقسام</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+      {/* Category Grid Section */}
+      <section className="bg-zinc-950 border-y border-zinc-900 py-32 mt-12 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none dxt-hero-pattern" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-20">
+            <h2 className="text-xs font-black text-lime uppercase tracking-[0.5em] mb-4">الأقسام الرئيسية</h2>
+            <p className="text-3xl font-black italic text-white uppercase tracking-tighter">تغطية شاملة لكل زوايا اللعبة</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { name: 'الأخبار', slug: 'news', desc: 'عناوين عالمية' },
-              { name: 'الانتقالات', slug: 'transfer', desc: 'حركة السوق' },
-              { name: 'المقارنات', slug: 'comparison', desc: 'تحليل البيانات' },
-              { name: 'التقارير', slug: 'match_report', desc: 'تحليل تكتيكي' },
+              { name: 'الأخبار', slug: 'news', desc: 'عناوين عالمية مباشرة', color: 'lime' },
+              { name: 'الانتقالات', slug: 'transfer', desc: 'أسرار سوق اللاعبين', color: 'lime' },
+              { name: 'المقارنات', slug: 'comparison', desc: 'لغة الأرقام والبيانات', color: 'lime' },
+              { name: 'التقارير', slug: 'match_report', desc: 'تشريح تكتيكي معمق', color: 'lime' },
             ].map((category) => (
               <Link
                 key={category.slug}
                 href={`/category/${category.slug}`}
-                className="group dxt-card p-8 transition-all hover:bg-black text-center"
+                className="group border border-zinc-900 bg-black p-10 transition-all hover:border-lime/40 hover:-translate-y-2"
               >
-                <p className="text-2xl font-black italic text-white uppercase group-hover:text-lime transition-colors">
+                <div className="w-12 h-1 mb-8 bg-zinc-800 group-hover:bg-lime transition-colors" />
+                <p className="text-2xl font-black italic text-white uppercase group-hover:text-lime transition-colors mb-3">
                   {category.name}
                 </p>
-                <p className="mt-3 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
                   {category.desc}
                 </p>
               </Link>
@@ -143,46 +228,5 @@ export default async function Home() {
         </div>
       </section>
     </div>
-  );
-}
-
-function ArticleCard({ article, compact = false }: { article: any, compact?: boolean }) {
-  const categoryMap: Record<string, string> = {
-    news: 'أخبار',
-    transfer: 'انتقالات',
-    comparison: 'مقارنات',
-    match_report: 'تقارير المباريات'
-  };
-  
-  return (
-    <Link
-      href={`/article/${article.slug}`}
-      className="group dxt-card flex flex-col h-full"
-    >
-      <div className={`${compact ? 'p-6' : 'p-8'} flex-1`}>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="w-1.5 h-1.5 bg-lime rounded-full shadow-[0_0_8px_rgba(179,212,0,0.8)]" />
-          <span className="text-[10px] font-bold text-lime uppercase tracking-widest">
-            {categoryMap[article.category] || article.category}
-          </span>
-        </div>
-        <h3 className={`${compact ? 'text-xl' : 'text-2xl'} font-black italic text-white leading-tight mb-3 group-hover:text-lime transition-colors line-clamp-3`}>
-          {article.title}
-        </h3>
-        {!compact && article.excerpt && (
-          <p className="text-gray-400 text-sm font-medium line-clamp-2 mb-4 leading-relaxed">
-            {article.excerpt}
-          </p>
-        )}
-      </div>
-      <div className={`px-6 py-4 border-t border-border-subtle flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500`}>
-        <span>
-          {article.publishedAt
-            ? new Date(article.publishedAt).toLocaleDateString('ar-EG')
-            : new Date(article.createdAt).toLocaleDateString('ar-EG')}
-        </span>
-        <span className="group-hover:text-lime transition-colors">التفاصيل ←</span>
-      </div>
-    </Link>
   );
 }

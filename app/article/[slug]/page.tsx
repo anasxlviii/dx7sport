@@ -1,199 +1,220 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { db } from '@/lib/db/db';
-import { articles, sources } from '@/lib/db/schema';
+import { articles, sources, media, settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import ReactMarkdown from 'react-markdown';
+import { ArticleRenderer } from '@/components/ArticleRenderer';
+import { AdComponent } from '@/components/AdComponent';
 
-async function getArticle(slug: string) {
-  const [article] = await db
-    .select()
-    .from(articles)
-    .where(eq(articles.slug, slug))
-    .limit(1);
+export const revalidate = 60; // Revalidate every 60 seconds
 
-  if (!article) return null;
-
-  const articleSources = await db
-    .select()
-    .from(sources)
-    .where(eq(sources.articleId, article.id));
-
-  return {
-    ...article,
-    sources: articleSources,
-  };
+async function getArticle(slug: string, retries = 5) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const [article] = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1);
+      if (!article) return null;
+      const articleSources = await db.select().from(sources).where(eq(sources.articleId, article.id));
+      const articleImages = await db.select().from(media).where(eq(media.articleId, article.id));
+      return { ...article, sources: articleSources, images: articleImages };
+    } catch (err) {
+      console.error(`[ArticlePage] getArticle error (attempt ${i + 1}/${retries}):`, err);
+      if (i === retries - 1) return null;
+      const delay = Math.min(1000 * Math.pow(2, i), 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  return null;
 }
 
-export default async function ArticlePage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const article = await getArticle(slug);
-
-  if (!article || article.status !== 'published') {
-    notFound();
+async function getAdSettings(retries = 5): Promise<Record<string, string>> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const rows = await db.select().from(settings);
+      const result: Record<string, string> = {};
+      for (const row of rows) result[row.key] = row.value ?? '';
+      return result;
+    } catch (err) {
+      console.error(`[ArticlePage] getAdSettings error (attempt ${i + 1}/${retries}):`, err);
+      if (i === retries - 1) return {};
+      const delay = Math.min(1000 * Math.pow(2, i), 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
+  return {};
+}
 
-  const metadata = article.metadata ? JSON.parse(article.metadata) : {};
+function fixContent(content: string): string {
+  let text = content;
+  text = text.replace(/\\n/g, '\n');
+  text = text.replace(/\n{3,}/g, '\n\n');
+  text = text.replace(/([^\n])\n(#{1,3} )/g, '$1\n\n$2');
+  text = text.replace(/(#{1,3} .+)\n([^\n])/g, '$1\n\n$2');
+  text = text.replace(/\\([.,،؛:؟!])/g, '$1');
+  return text.trim();
+}
+
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const [article, adSettings] = await Promise.all([getArticle(slug), getAdSettings()]);
+
+  if (!article || article.status !== 'published') notFound();
+
+  // Parse Metadata and fix content
+  const metadata = JSON.parse(article.metadata || '{}');
+  const quizData = metadata.quizData || null;
+
+  const galleryImages = (article.images || []) as Array<{ id: number; url: string; alt: string }>;
+  const categoryLabel = { news: 'أخبار', transfer: 'انتقالات', match_report: 'تقارير المباريات', comparison: 'مقارنات' }[article.category] ?? article.category;
+  const pubDate = (article.publishedAt ?? article.createdAt) ? new Date(article.publishedAt ?? article.createdAt).toLocaleDateString('ar-EG') : '';
+  const fixedExcerpt = article.excerpt?.replace(/\\n/g, ' ').replace(/\n+/g, ' ').trim() ?? '';
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Article Header */}
-      <article className="relative overflow-hidden bg-black border-b border-border-subtle pt-20 pb-12 dxt-hero-pattern">
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
-          <Link
-            href="/"
-            className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-lime hover:text-white mb-8 transition-colors"
-          >
-            العودة للأخبار →
+      <article className="relative overflow-hidden" style={{ minHeight: '520px' }}>
+        {article.featuredImage ? (
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${article.featuredImage}')` }} />
+        ) : (
+          <div className="absolute inset-0 bg-zinc-900 dxt-hero-pattern" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/65 to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
+
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16 flex flex-col justify-end" style={{ minHeight: '520px' }}>
+          <Link href="/" className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-lime hover:text-white mb-8 transition-colors self-start">
+            → العودة للأخبار
           </Link>
-
-          <div className="flex items-center gap-2 mb-6">
-            <span className="w-2 h-2 bg-lime rounded-full shadow-[0_0_8px_rgba(179,212,0,0.8)]" />
-            <span className="text-xs font-bold text-lime uppercase tracking-widest">
-              {article.category === 'news' ? 'أخبار' : article.category === 'transfer' ? 'انتقالات' : article.category === 'match_report' ? 'تقارير المباريات' : article.category === 'comparison' ? 'مقارنات' : article.category}
-            </span>
+          <div className="flex items-center gap-2 mb-5">
+            <span className="w-2 h-2 bg-lime rounded-full shadow-[0_0_8px_rgba(179,212,0,0.9)] animate-pulse" />
+            <span className="text-xs font-bold text-lime uppercase tracking-widest">الخبر الرئيسي | {categoryLabel}</span>
           </div>
-
-          <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter uppercase text-white leading-[1.2] mb-8">
+          <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter uppercase text-white leading-[1.15] mb-6">
             {article.title}
           </h1>
-
-          {article.excerpt && (
-            <p className="text-xl text-gray-400 font-medium leading-relaxed mb-8 border-r-2 border-lime pr-6 italic">
-              {article.excerpt}
+          {fixedExcerpt && (
+            <p className="text-base md:text-lg text-gray-200 font-semibold leading-relaxed mb-6 border-r-4 border-lime pr-5 max-w-2xl">
+              {fixedExcerpt}
             </p>
           )}
-
-          <div className="flex items-center gap-6 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
-            <span className="flex items-center gap-2">
-              <span className="text-lime">تاريخ النشر:</span>
-              {article.publishedAt
-                ? new Date(article.publishedAt).toLocaleDateString('ar-EG')
-                : new Date(article.createdAt).toLocaleDateString('ar-EG')}
-            </span>
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">
+            <span className="text-lime">تاريخ النشر:</span>
+            <span>{pubDate}</span>
           </div>
         </div>
       </article>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <div className="dxt-card p-10">
-              {/* Fact Box */}
-              {metadata.factBox && (
-                <div className="bg-lime/5 border border-lime/20 p-8 mb-12 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-lime/10 rotate-45 translate-x-12 -translate-y-12" />
-                  <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-4">معلومات تكتيكية</h3>
-                  <div
-                    className="text-gray-300 font-medium leading-relaxed prose prose-invert"
-                    dangerouslySetInnerHTML={{ __html: metadata.factBox }}
-                  />
+          <div className="lg:col-span-2 space-y-8">
+            {metadata.factBox && (
+              <div className="bg-lime/5 border-r-4 border-lime p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-20 h-20 bg-lime/5 rotate-45 -translate-x-10 -translate-y-10" />
+                <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-5">⚡ معلومات تكتيكية</h3>
+                <div className="space-y-2">
+                  {metadata.factBox.replace(/\\n/g, '\n').split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
+                    <p key={i} className="text-gray-200 font-medium leading-relaxed text-sm flex items-start gap-2">
+                      <span className="text-lime font-black mt-0.5 shrink-0">—</span>
+                      <span>{line.replace(/^[-–—]\s*/, '')}</span>
+                    </p>
+                  ))}
                 </div>
-              )}
-
-              {/* Article Content */}
-              <div dir="auto" className="prose prose-invert prose-lg max-w-none prose-headings:uppercase prose-headings:italic prose-headings:font-black prose-headings:tracking-tight prose-a:text-lime hover:prose-a:text-white prose-strong:text-lime">
-                <ReactMarkdown>{article.content}</ReactMarkdown>
               </div>
-            </div>
+            )}
 
-            {/* Ad Space */}
-            <div className="mt-12 bg-dark-surface border border-border-subtle p-12 text-center group transition-colors hover:border-lime/30">
-              <div className="text-[10px] font-bold uppercase tracking-[0.5em] text-gray-600 group-hover:text-lime transition-colors">
-                مساحة إعلانية
+            <ArticleRenderer
+              content={article.content}
+              galleryImages={galleryImages}
+              adMidArticle={adSettings.ad_article_mid}
+              adMidEnabled={adSettings.ad_article_mid_enabled === 'true'}
+              quizData={quizData}
+            />
+
+            {adSettings.ad_article_bottom_enabled === 'true' && adSettings.ad_article_bottom && (
+              <div className="my-12">
+                <p className="text-[9px] font-black uppercase tracking-[0.5em] text-zinc-800 mb-4 text-center">إعلان</p>
+                {/* <AdComponent code={adSettings.ad_article_bottom} /> */}
               </div>
-            </div>
+            )}
+
+            {galleryImages.length > 0 && (
+              <div className="pt-8 border-t border-border-subtle">
+                <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-6">معرض الصور</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {galleryImages.map(img => (
+                    <img key={img.id} src={img.url} alt={img.alt || article.title} className="w-full h-56 object-cover border border-border-subtle" />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-8">
-            {/* Sources */}
-            {article.sources && article.sources.length > 0 && (
+            {article.sources?.length > 0 && (
               <div className="dxt-card p-8">
-                <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-6">
-                  المصادر الموثوقة ({article.sources.length})
-                </h3>
+                <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-6">المصادر الموثوقة ({article.sources.length})</h3>
                 <div className="space-y-4">
                   {article.sources.map((source: any) => (
-                    <div key={source.id} className="group">
-                      <a
-                        href={source.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-bold uppercase tracking-tight text-white group-hover:text-lime transition-colors line-clamp-2 leading-snug"
-                        dir="ltr" // Keeping LTR for URLs or original English titles if any
-                      >
+                    <div key={source.id} className="group pb-4 border-b border-border-subtle last:border-0">
+                      <a href={source.url} target="_blank" rel="noopener noreferrer"
+                        className="text-sm font-bold text-white group-hover:text-lime transition-colors line-clamp-2 leading-snug" dir="ltr">
                         {source.title}
                       </a>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span
-                          className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 border ${
-                            source.credibility === 'high'
-                              ? 'border-lime text-lime'
-                              : 'border-gray-700 text-gray-500'
-                          }`}
-                        >
-                          موثوقية {source.credibility === 'high' ? 'عالية' : source.credibility}
-                        </span>
-                      </div>
+                      <span className={`text-[9px] mt-2 inline-block px-2 py-0.5 border font-bold uppercase ${source.credibility === 'high' ? 'border-lime text-lime' : 'border-gray-700 text-gray-500'}`}>
+                        {source.credibility === 'high' ? 'موثوق' : source.credibility}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Sidebar Ad */}
-            <div className="bg-dark-surface border border-border-subtle p-8 text-center">
-              <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-gray-700">إعلان</div>
-            </div>
+            {adSettings.ad_sidebar_enabled === 'true' && adSettings.ad_sidebar && (
+              <div className="mb-8">
+                <p className="text-[9px] font-black uppercase tracking-[0.5em] text-zinc-800 mb-4 text-center">إعلان</p>
+                {/* <AdComponent code={adSettings.ad_sidebar} /> */}
+              </div>
+            )}
 
-            {/* Related Links */}
             <div className="dxt-card p-8">
-              <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-6">
-                أخبار ذات صلة
-              </h3>
+              <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-6">أخبار ذات صلة</h3>
               <nav className="flex flex-col gap-4">
-                <Link
-                  href="/category/news"
-                  className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-all flex items-center justify-between group"
-                >
-                  أخبار عالمية
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">←</span>
-                </Link>
-                <Link
-                  href="/category/transfer"
-                  className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-all flex items-center justify-between group"
-                >
-                  أخبار الانتقالات
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">←</span>
-                </Link>
-                <Link
-                  href="/category/comparison"
-                  className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-all flex items-center justify-between group"
-                >
-                  مقارنات
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">←</span>
-                </Link>
+                {[
+                  { href: '/category/news', label: 'أخبار عالمية' },
+                  { href: '/category/transfer', label: 'أخبار الانتقالات' },
+                  { href: '/category/comparison', label: 'مقارنات' },
+                  { href: '/category/match_report', label: 'تقارير المباريات' },
+                ].map(l => (
+                  <Link key={l.href} href={l.href}
+                    className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-all flex items-center justify-between group">
+                    {l.label}
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">←</span>
+                  </Link>
+                ))}
               </nav>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Share Section */}
       <div className="bg-zinc-900 border-t border-border-subtle">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h3 className="font-bold text-white uppercase tracking-widest text-xs mb-4">مشاركة</h3>
+          <h3 className="font-bold text-white uppercase tracking-widest text-xs mb-4">شارك المقال</h3>
           <div className="flex gap-4">
-            <span className="text-gray-600">
-              شارك عبر فيسبوك، تويتر، أو انسخ الرابط
-            </span>
+            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://dx7sport.com/article/${article.slug}`)}`}
+              target="_blank" rel="noopener"
+              className="px-4 py-2 border border-blue-800 text-blue-400 text-xs font-bold uppercase hover:bg-blue-900/20 transition-all">
+              فيسبوك
+            </a>
+            <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://dx7sport.com/article/${article.slug}`)}&text=${encodeURIComponent(article.title)}`}
+              target="_blank" rel="noopener"
+              className="px-4 py-2 border border-sky-800 text-sky-400 text-xs font-bold uppercase hover:bg-sky-900/20 transition-all">
+              تويتر / X
+            </a>
+            <a href={`https://wa.me/?text=${encodeURIComponent(article.title + ' ' + `https://dx7sport.com/article/${article.slug}`)}`}
+              target="_blank" rel="noopener"
+              className="px-4 py-2 border border-green-800 text-green-400 text-xs font-bold uppercase hover:bg-green-900/20 transition-all">
+              واتساب
+            </a>
           </div>
         </div>
       </div>
@@ -201,22 +222,32 @@ export default async function ArticlePage({
   );
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const article = await getArticle(slug);
+  if (!article) return { title: 'غير موجود' };
 
-  if (!article) {
-    return {
-      title: 'Article Not Found',
-    };
-  }
-
+  const description = article.excerpt?.replace(/\\n/g, ' ').replace(/\n/g, ' ').slice(0, 160) || article.title;
+  
+  // Use relative URLs or let the platform handle it
+  const canonical = `/article/${slug}`;
+  const imageUrl = article.featuredImage || '/default-share.jpg';
+  
   return {
     title: article.title,
-    description: article.excerpt || article.title,
+    description,
+    openGraph: {
+      title: article.title,
+      description,
+      url: canonical,
+      siteName: 'DX7 SPORT',
+      type: 'article',
+      images: [imageUrl],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: [imageUrl],
+    },
+    metadataBase: null, // Let Next.js handle relative URLs or set it dynamically if needed
   };
 }

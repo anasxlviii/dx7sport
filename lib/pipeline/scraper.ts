@@ -43,36 +43,91 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent | null> {
 }
 
 async function scrapeFacebookPost(url: string): Promise<ScrapedContent | null> {
-  try {
-    // Facebook requires a bot user-agent to return og tags without requiring login
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-      },
-      timeout: 10000,
-    });
+  const strategies = [
+    // Strategy 1: mbasic (lightweight mobile version - no JS required)
+    async () => {
+      const mbasicUrl = url
+        .replace('www.facebook.com', 'mbasic.facebook.com')
+        .replace('m.facebook.com', 'mbasic.facebook.com');
+      const response = await axios.get(mbasicUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Cookie': '',
+        },
+        timeout: 12000,
+        maxRedirects: 5,
+      });
+      return response.data as string;
+    },
+    // Strategy 2: External hit user agent (makes Facebook serve OG tags)
+    async () => {
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        timeout: 12000,
+        maxRedirects: 5,
+      });
+      return response.data as string;
+    },
+    // Strategy 3: Googlebot UA (sometimes bypasses FB gate)
+    async () => {
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        timeout: 12000,
+        maxRedirects: 5,
+      });
+      return response.data as string;
+    },
+  ];
 
-    const html = response.data;
-    const title = extractTitle(html) || 'Facebook Post';
-    
-    // Facebook puts the post content in og:description or sometimes title
-    const descriptionMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
-    const text = descriptionMatch ? descriptionMatch[1] : title;
-    
-    // Extract og:image
-    const imageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["'][^>]*>/i);
-    const images = imageMatch ? [imageMatch[1].replace(/&amp;/g, '&')] : [];
+  for (const strategy of strategies) {
+    try {
+      const html = await strategy();
+      
+      // Try to extract meaningful text content (not just OG tags)
+      const title = extractTitle(html);
+      
+      // Extract OG description
+      const descMatch = html.match(/property=["']og:description["'][^>]*content=["']([^"']{10,})["']/i)
+        || html.match(/content=["']([^"']{10,})["'][^>]*property=["']og:description["']/i);
+      
+      // For mbasic, try to extract the post body text
+      const postBodyMatch = html.match(/<div[^>]*data-ft[^>]*>([\s\S]{20,}?)<\/div>/i)
+        || html.match(/class="[^"]*story_body[^"]*"[^>]*>([\s\S]{20,}?)<\/div>/i);
+      
+      let text = '';
+      if (descMatch && descMatch[1].length > 20) {
+        text = descMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+      } else if (postBodyMatch) {
+        text = postBodyMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000);
+      } else if (title && title !== 'Facebook') {
+        text = title;
+      }
 
-    return {
-      text,
-      title,
-      url,
-      images,
-    };
-  } catch (error) {
-    console.error('Failed to scrape Facebook:', error);
-    return null;
+      // Extract OG image
+      const imageMatch = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+        || html.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+      const images = imageMatch ? [imageMatch[1].replace(/&amp;/g, '&')] : [];
+      
+      if (text && text.length > 15) {
+        console.log(`[Scraper] Facebook: extracted ${text.length} chars via strategy`);
+        return { text, title: title || 'Facebook Post', url, images };
+      }
+    } catch (err) {
+      // Try next strategy
+      console.warn('[Scraper] Facebook strategy failed:', (err as any)?.message);
+    }
   }
+
+  console.warn('[Scraper] All Facebook strategies failed for:', url);
+  return null;
 }
 
 function extractTextFromHTML(html: string): string {

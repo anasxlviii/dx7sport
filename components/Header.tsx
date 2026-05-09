@@ -40,6 +40,12 @@ export default function Header() {
             >
               المقارنات
             </Link>
+            <Link
+              href="/entertainment"
+              className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-colors"
+            >
+              تسلية
+            </Link>
           </nav>
 
           <div className="flex items-center gap-4">

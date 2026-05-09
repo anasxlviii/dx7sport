@@ -5,11 +5,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { postContent, postUrl } = body;
+    const { postContent, postUrl, imageBase64 } = body;
 
-    if (!postContent && !postUrl) {
+    if (!postContent && !postUrl && !imageBase64) {
       return NextResponse.json(
-        { error: 'Either postContent or postUrl is required' },
+        { error: 'Either postContent, postUrl, or imageBase64 is required' },
         { status: 400 }
       );
     }
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await runPipeline({ postContent, postUrl });
+    const result = await runPipeline({ postContent, postUrl, imageBase64 });
 
     if (result.success && result.article) {
       return NextResponse.json({
