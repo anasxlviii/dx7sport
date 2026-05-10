@@ -131,8 +131,8 @@ export default async function Home() {
                   <div className="px-12 py-8 border-t border-zinc-900/50 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.3em] text-gray-500 z-20 bg-black/40 backdrop-blur-md">
                     <span>
                       {featuredArticle.publishedAt
-                        ? new Date(featuredArticle.publishedAt).toLocaleDateString('ar-EG')
-                        : new Date(featuredArticle.createdAt).toLocaleDateString('ar-EG')}
+                        ? new Date(featuredArticle.publishedAt).toLocaleDateString('ar-EG', { numberingSystem: 'latn' })
+                        : new Date(featuredArticle.createdAt).toLocaleDateString('ar-EG', { numberingSystem: 'latn' })}
                     </span>
                     <span className="text-lime group-hover:translate-x-[-10px] transition-transform">اقرأ القصة الكاملة ←</span>
                   </div>

@@ -53,9 +53,10 @@ export function ArticleCard({ article, compact = false }: { article: any, compac
       <div className={`px-8 py-5 border-t border-zinc-900/50 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.3em] text-gray-600`}>
         <span>
           {article.publishedAt
-            ? new Date(article.publishedAt).toLocaleDateString('ar-EG')
-            : new Date(article.createdAt).toLocaleDateString('ar-EG')}
+            ? new Date(article.publishedAt).toLocaleDateString('ar-EG', { numberingSystem: 'latn' })
+            : new Date(article.createdAt).toLocaleDateString('ar-EG', { numberingSystem: 'latn' })}
         </span>
+
         <span className="text-lime group-hover:translate-x-[-5px] transition-transform">اقرأ ←</span>
       </div>
     </Link>

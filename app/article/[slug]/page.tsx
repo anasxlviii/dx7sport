@@ -66,7 +66,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   const galleryImages = (article.images || []) as Array<{ id: number; url: string; alt: string }>;
   const categoryLabel = { news: 'أخبار', transfer: 'انتقالات', match_report: 'تقارير المباريات', comparison: 'مقارنات' }[article.category] ?? article.category;
-  const pubDate = (article.publishedAt ?? article.createdAt) ? new Date(article.publishedAt ?? article.createdAt).toLocaleDateString('ar-EG') : '';
+  const pubDate = (article.publishedAt ?? article.createdAt) ? new Date(article.publishedAt ?? article.createdAt).toLocaleDateString('ar-EG', { numberingSystem: 'latn' }) : '';
   const fixedExcerpt = article.excerpt?.replace(/\\n/g, ' ').replace(/\n+/g, ' ').trim() ?? '';
 
   return (
