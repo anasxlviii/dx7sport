@@ -80,7 +80,8 @@ export async function POST(req: NextRequest) {
     
     try {
       const aiResponse = await executeWithGemini(async (client) => {
-        const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
         const chat = model.startChat({
           history: [
             { role: 'user', parts: [{ text: "You are the AI assistant for dx7sport.com, a premium football blog. You are talking to the owner via Telegram. Be professional, concise, and passionate about football." }] },

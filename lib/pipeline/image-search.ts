@@ -105,7 +105,8 @@ export async function selectBestImage(query: string, contextSummary?: string): P
 
   try {
     const result = await executeWithGemini(async (client) => {
-      const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
       const res = await model.generateContent(`You are a professional Photo Editor for a sports news site. 
             ARTICLE CONTEXT: ${contextSummary || query}
             

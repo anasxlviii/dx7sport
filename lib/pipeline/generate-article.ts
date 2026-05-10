@@ -194,7 +194,7 @@ ${rawSearchContext ? rawSearchContext : 'No recent news found. Rely on verified 
 
     const result = await executeWithGemini(async (client) => {
       const model = client.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: articleSchema as any,

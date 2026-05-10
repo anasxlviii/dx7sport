@@ -70,7 +70,8 @@ Always interpret "this season" or "next month" relative to the current date.`;
 
     const result = await executeWithGemini(async (client) => {
       const model = client.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
+
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: topicSchema as any,
