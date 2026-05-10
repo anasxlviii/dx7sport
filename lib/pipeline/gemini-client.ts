@@ -44,6 +44,11 @@ export async function executeWithGemini<T>(
         console.warn(`[Gemini API] Key ending in ...${key.slice(-4)} exhausted its quota. Switching keys...`);
         currentKeyIndex = (currentKeyIndex + 1) % keys.length;
         attempts++;
+        
+        // Add a small delay between switches to let the quota stabilize
+        if (attempts < keys.length) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       } else {
         // If it's a different error (e.g. 400 Bad Request, 500 Internal Server Error), throw immediately
         throw error;
