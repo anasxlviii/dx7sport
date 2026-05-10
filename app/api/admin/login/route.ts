@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const adminUser = 'anas';
   const adminPass = 'Walid1234+';
 
-  if (username === adminUser && password === adminPass) {
+  if (username?.trim().toLowerCase() === adminUser.toLowerCase() && password?.trim() === adminPass) {
     const cookieStore = await cookies();
     cookieStore.set('admin_session', 'true', {
       httpOnly: true,
