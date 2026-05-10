@@ -5,7 +5,7 @@ import { getBestImage } from './image-search';
 import { db } from '../db/db';
 import { articles, sources } from '../db/schema';
 import slugify from 'slugify';
-import { sendNotification } from './notifications';
+import { sendTelegramAlert } from './telegram';
 
 export interface PipelineInput {
   postContent?: string;
@@ -174,11 +174,11 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       steps[3].result = { articleId: article.id };
       steps[3].completedAt = new Date();
 
-      // Trigger WhatsApp Alert
+      // Trigger Telegram Alert
       try {
-        await sendNotification(article.title, article.id);
-      } catch (waError) {
-        console.warn('[Pipeline] WhatsApp alert failed:', waError);
+        await sendTelegramAlert(article.title, article.id);
+      } catch (tgError) {
+        console.warn('[Pipeline] Telegram alert failed:', tgError);
       }
 
       return {
