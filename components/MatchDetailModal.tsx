@@ -10,35 +10,55 @@ interface MatchDetailModalProps {
 export default function MatchDetailModal({ eventId, onClose }: MatchDetailModalProps) {
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const fetchDetails = async (isAi = false) => {
+    if (!eventId) return;
+    
+    if (isAi) setAiLoading(true);
+    else setLoading(true);
+
+    try {
+      const url = isAi ? `/api/match-details/${eventId}/ai` : `/api/match-details/${eventId}`;
+      const method = isAi ? 'POST' : 'GET';
+      
+      const res = await fetch(url, { method });
+      const data = await res.json();
+      
+      setDetails(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (eventId) {
-      setLoading(true);
-      fetch(`/api/match-details/${eventId}`)
-        .then(res => res.json())
-        .then(data => {
-          setDetails(data);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
+      fetchDetails();
     }
   }, [eventId]);
 
   if (!eventId) return null;
 
+  const hasNoData = details && !details.strHomeGoalDetails && !details.strHomeYellowCards && !details.strHomeLineupGoalkeeper;
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <div 
-        className="absolute inset-0 bg-black/90 backdrop-blur-md animate-in fade-in duration-300" 
+        className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" 
         onClick={onClose} 
       />
       
-      <div className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-900 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-900 shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-6 border-b border-zinc-900 flex items-center justify-between bg-black">
           <div className="flex items-center gap-3">
-             <div className="w-1.5 h-1.5 bg-lime rounded-full" />
-             <h2 className="text-[10px] font-black text-white uppercase tracking-[0.4em]">تفاصيل المباراة</h2>
+             <div className={`w-1.5 h-1.5 rounded-full ${details?.is_ai_generated ? 'bg-purple-500 shadow-[0_0_10px_#a855f7]' : 'bg-lime shadow-[0_0_10px_#b3d400]'}`} />
+             <h2 className="text-[10px] font-black text-white uppercase tracking-[0.4em]">
+               {details?.is_ai_generated ? 'تقرير مراسل الشبح (AI)' : 'تفاصيل المباراة المباشرة'}
+             </h2>
           </div>
           <button 
             onClick={onClose}
@@ -48,49 +68,85 @@ export default function MatchDetailModal({ eventId, onClose }: MatchDetailModalP
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 md:p-10 no-scrollbar">
           {loading ? (
-            <div className="py-24 flex flex-col items-center justify-center gap-4">
-              <div className="w-8 h-8 border-2 border-lime/20 border-t-lime rounded-full animate-spin" />
-              <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">جاري جلب البيانات...</p>
+            <div className="py-32 flex flex-col items-center justify-center gap-6 text-center">
+              <div className="w-12 h-12 border-2 border-lime/10 border-t-lime rounded-full animate-spin" />
+              <div className="space-y-2">
+                <p className="text-[10px] font-black text-white uppercase tracking-[0.4em]">جاري جلب البيانات</p>
+                <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">انتظر قليلاً من فضلك</p>
+              </div>
             </div>
           ) : details ? (
             <div className="flex flex-col gap-12">
               {/* Score Header */}
-              <div className="flex items-center justify-around text-center py-8 bg-zinc-900/30 border border-zinc-900">
-                <div className="flex flex-col items-center gap-4 w-1/3">
-                  <img src={details.strHomeTeamBadge} alt="" className="w-16 h-16 object-contain" />
-                  <span className="text-sm font-black text-white uppercase italic tracking-tighter">{details.strHomeTeam}</span>
-                </div>
-                
-                <div className="flex flex-col items-center gap-2">
-                  <div className="text-6xl font-black italic text-lime tracking-tighter dxt-numeral">
-                    {details.intHomeScore} - {details.intAwayScore}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-lime/5 via-transparent to-lime/5 opacity-50" />
+                <div className="relative flex items-center justify-around text-center py-10 border border-zinc-900 bg-black/40">
+                  <div className="flex flex-col items-center gap-5 w-1/3">
+                    <img src={details.strHomeTeamBadge} alt="" className="w-20 h-20 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.05)]" />
+                    <span className="text-base font-black text-white uppercase italic tracking-tighter leading-tight">{details.strHomeTeam}</span>
                   </div>
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                    {details.strStatus === 'Match Finished' ? 'انتهت' : 'مباشر'}
-                  </span>
-                </div>
+                  
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="text-7xl font-black italic text-lime tracking-tighter dxt-numeral leading-none">
+                      {details.intHomeScore} - {details.intAwayScore}
+                    </div>
+                    <div className="px-3 py-1 bg-zinc-900 rounded text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                      {details.strStatus === 'Match Finished' ? 'انتهت المباراة' : 'مباراة جارية'}
+                    </div>
+                  </div>
 
-                <div className="flex flex-col items-center gap-4 w-1/3">
-                  <img src={details.strAwayTeamBadge} alt="" className="w-16 h-16 object-contain" />
-                  <span className="text-sm font-black text-white uppercase italic tracking-tighter">{details.strAwayTeam}</span>
+                  <div className="flex flex-col items-center gap-5 w-1/3">
+                    <img src={details.strAwayTeamBadge} alt="" className="w-20 h-20 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.05)]" />
+                    <span className="text-base font-black text-white uppercase italic tracking-tighter leading-tight">{details.strAwayTeam}</span>
+                  </div>
                 </div>
               </div>
 
+              {/* AI Enrichment Prompt */}
+              {hasNoData && !details.is_ai_generated && (
+                <div className="p-8 border border-zinc-800 bg-zinc-900/20 text-center rounded-sm">
+                   <p className="text-xs font-bold text-zinc-500 mb-6 leading-loose">
+                     لم نتمكن من العثور على تفاصيل الأحداث (الأهداف والبطاقات) في المصدر الأساسي. 
+                     <br /> هل تريد من <span className="text-lime">Ghost Reporter (AI)</span> البحث عنها وتلخيصها لك؟
+                   </p>
+                   <button 
+                    onClick={() => fetchDetails(true)}
+                    disabled={aiLoading}
+                    className="px-8 py-3 bg-lime text-black text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all disabled:opacity-50 flex items-center gap-3 mx-auto"
+                   >
+                     {aiLoading ? (
+                       <>
+                         <div className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                         جاري التحليل...
+                       </>
+                     ) : (
+                       <>استدعاء مراسل الشبح (AI) 🔥</>
+                     )}
+                   </button>
+                </div>
+              )}
+
               {/* Goals & Events */}
-              <div className="grid grid-cols-2 gap-8 relative">
-                 <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-zinc-900" />
+              <div className="grid grid-cols-2 gap-12 relative">
+                 <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-zinc-900 opacity-50" />
                  
-                 <div className="flex flex-col gap-6">
-                    <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">أحداث صاحب الأرض</h3>
+                 <div className="flex flex-col gap-8">
+                    <div className="flex items-center gap-3 mb-2">
+                       <span className="w-1 h-3 bg-lime" />
+                       <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">أحداث الأرض</h3>
+                    </div>
                     <EventList events={details.strHomeGoalDetails} type="goal" />
                     <EventList events={details.strHomeYellowCards} type="yellow" />
                     <EventList events={details.strHomeRedCards} type="red" />
                  </div>
 
-                 <div className="flex flex-col gap-6 text-right">
-                    <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">أحداث الضيف</h3>
+                 <div className="flex flex-col gap-8 text-right">
+                    <div className="flex items-center gap-3 mb-2 justify-end">
+                       <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">أحداث الضيف</h3>
+                       <span className="w-1 h-3 bg-lime" />
+                    </div>
                     <EventList events={details.strAwayGoalDetails} type="goal" align="right" />
                     <EventList events={details.strAwayYellowCards} type="yellow" align="right" />
                     <EventList events={details.strAwayRedCards} type="red" align="right" />
@@ -98,22 +154,42 @@ export default function MatchDetailModal({ eventId, onClose }: MatchDetailModalP
               </div>
 
               {/* Lineups Preview */}
-              <div className="pt-8 border-t border-zinc-900">
-                 <h3 className="text-[10px] font-black text-lime uppercase tracking-[0.3em] mb-6">تشكيلة الفريقين</h3>
-                 <div className="grid grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                       <p className="text-[9px] font-bold text-zinc-600 mb-4">{details.strHomeTeam}</p>
-                       <p className="text-xs font-medium text-gray-300 leading-relaxed">{details.strHomeLineupGoalkeeper || 'غير متوفر'}</p>
-                       <p className="text-xs font-medium text-gray-400 leading-relaxed opacity-60">{details.strHomeLineupDefense}</p>
-                       <p className="text-xs font-medium text-gray-400 leading-relaxed opacity-60">{details.strHomeLineupMidfield}</p>
+              <div className="pt-10 border-t border-zinc-900">
+                 <h3 className="text-[11px] font-black text-lime uppercase tracking-[0.4em] mb-10 flex items-center gap-4">
+                   <span className="flex-shrink-0">التشكيلة المتوقعة / الرسمية</span>
+                   <div className="h-px flex-1 bg-zinc-900" />
+                 </h3>
+                 <div className="grid grid-cols-2 gap-12">
+                    <div className="space-y-6">
+                       <p className="text-[10px] font-black text-white/40 uppercase tracking-widest border-b border-zinc-900 pb-2">{details.strHomeTeam}</p>
+                       <div className="space-y-4">
+                          <LineupSection title="حراسة المرمى" player={details.strHomeLineupGoalkeeper} />
+                          <LineupSection title="الدفاع" player={details.strHomeLineupDefense} />
+                          <LineupSection title="الوسط" player={details.strHomeLineupMidfield} />
+                          <LineupSection title="الهجوم" player={details.strHomeLineupForward} />
+                       </div>
                     </div>
-                    <div className="space-y-2 text-right">
-                       <p className="text-[9px] font-bold text-zinc-600 mb-4">{details.strAwayTeam}</p>
-                       <p className="text-xs font-medium text-gray-300 leading-relaxed">{details.strAwayLineupGoalkeeper || 'غير متوفر'}</p>
-                       <p className="text-xs font-medium text-gray-400 leading-relaxed opacity-60">{details.strAwayLineupDefense}</p>
-                       <p className="text-xs font-medium text-gray-400 leading-relaxed opacity-60">{details.strAwayLineupMidfield}</p>
+                    <div className="space-y-6 text-right">
+                       <p className="text-[10px] font-black text-white/40 uppercase tracking-widest border-b border-zinc-900 pb-2 text-right">{details.strAwayTeam}</p>
+                       <div className="space-y-4">
+                          <LineupSection title="حراسة المرمى" player={details.strAwayLineupGoalkeeper} align="right" />
+                          <LineupSection title="الدفاع" player={details.strAwayLineupDefense} align="right" />
+                          <LineupSection title="الوسط" player={details.strAwayLineupMidfield} align="right" />
+                          <LineupSection title="الهجوم" player={details.strAwayLineupForward} align="right" />
+                       </div>
                     </div>
                  </div>
+              </div>
+              
+              {/* Footer / SofaScore Link */}
+              <div className="pt-8 text-center border-t border-zinc-900">
+                 <a 
+                  href={`https://www.sofascore.com/search?q=${encodeURIComponent(details.strHomeTeam + ' ' + details.strAwayTeam)}`}
+                  target="_blank"
+                  className="text-[9px] font-black text-zinc-600 hover:text-lime transition-colors uppercase tracking-[0.3em]"
+                 >
+                    مشاهدة التفاصيل الكاملة على SofaScore →
+                 </a>
               </div>
             </div>
           ) : (
@@ -127,21 +203,30 @@ export default function MatchDetailModal({ eventId, onClose }: MatchDetailModalP
   );
 }
 
+function LineupSection({ title, player, align = 'left' }: { title: string, player: string, align?: 'left' | 'right' }) {
+  if (!player) return null;
+  return (
+    <div className={`space-y-1 ${align === 'right' ? 'text-right' : 'text-left'}`}>
+      <p className="text-[8px] font-black text-zinc-600 uppercase tracking-tighter">{title}</p>
+      <p className="text-xs font-bold text-gray-300 leading-relaxed italic">{player}</p>
+    </div>
+  );
+}
+
 function EventList({ events, type, align = 'left' }: { events: string, type: 'goal' | 'yellow' | 'red', align?: 'left' | 'right' }) {
   if (!events) return null;
   
-  // SportsDB format is usually "Name1 10';Name2 20';"
   const items = events.split(';').filter(Boolean);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {items.map((item, idx) => (
-        <div key={idx} className={`flex items-center gap-2 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
-          <div className={`w-2 h-2 rounded-sm ${
-            type === 'goal' ? 'bg-lime' : 
-            type === 'yellow' ? 'bg-yellow-500' : 'bg-red-500'
+        <div key={idx} className={`flex items-center gap-3 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+          <div className={`w-2.5 h-2.5 rounded-sm shadow-sm ${
+            type === 'goal' ? 'bg-lime shadow-lime/50' : 
+            type === 'yellow' ? 'bg-yellow-500 shadow-yellow-500/50' : 'bg-red-500 shadow-red-500/50'
           }`} />
-          <span className="text-[11px] font-bold text-white italic tracking-tighter dxt-numeral">{item}</span>
+          <span className="text-xs font-black text-white italic tracking-tighter dxt-numeral leading-none">{item}</span>
         </div>
       ))}
     </div>
