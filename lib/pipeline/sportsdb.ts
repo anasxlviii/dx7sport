@@ -96,14 +96,27 @@ export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
 /**
  * Fetches upcoming big matches
  */
-export async function getUpcomingMatches(leagueId = TOP_LEAGUES.PREMIER_LEAGUE): Promise<SportsEvent[]> {
-
+export async function getUpcomingMatches(): Promise<SportsEvent[]> {
   try {
-    const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsnextleague.php?id=${leagueId}`;
+    const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsnextleague.php?id=${TOP_LEAGUES.PREMIER_LEAGUE}`;
     const response = await axios.get(url);
     return response.data.events || [];
   } catch (error) {
-    console.error('[SportsDB] Failed to fetch upcoming matches:', error);
+    console.error('[SportsDB] Upcoming matches fetch failed:', error);
     return [];
+  }
+}
+
+/**
+ * Fetches detailed info for a specific event
+ */
+export async function getEventDetails(idEvent: string): Promise<any> {
+  try {
+    const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/lookupevent.php?id=${idEvent}`;
+    const response = await axios.get(url);
+    return response.data.events ? response.data.events[0] : null;
+  } catch (error) {
+    console.error('[SportsDB] Event details fetch failed:', error);
+    return null;
   }
 }

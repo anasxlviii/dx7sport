@@ -1,5 +1,8 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { SportsEvent } from '@/lib/pipeline/sportsdb';
+import MatchDetailModal from './MatchDetailModal';
 
 interface ScoreSectionProps {
   scores: SportsEvent[];
@@ -8,6 +11,8 @@ interface ScoreSectionProps {
 }
 
 export function ScoreSection({ scores, title = "نتائج الدوريات الكبرى", isPage = false }: ScoreSectionProps) {
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
   if (!scores || scores.length === 0) return null;
 
   // Group scores by league
@@ -23,7 +28,7 @@ export function ScoreSection({ scores, title = "نتائج الدوريات ال
       hour: '2-digit', 
       minute: '2-digit',
       hour12: false,
-      numberingSystem: 'latn' // Force normal numbers
+      numberingSystem: 'latn'
     });
   };
 
@@ -31,62 +36,69 @@ export function ScoreSection({ scores, title = "نتائج الدوريات ال
     return new Date(timestamp).toLocaleDateString('ar-EG', { 
       day: 'numeric', 
       month: 'short',
-      numberingSystem: 'latn' // Force normal numbers
+      numberingSystem: 'latn'
     });
   };
 
   return (
-    <section className={`py-12 ${isPage ? '' : 'border-b border-zinc-900 bg-black'} overflow-hidden`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-2 h-2 bg-lime rounded-full animate-pulse shadow-[0_0_10px_rgba(179,212,0,0.8)]" />
-          <h2 className="text-xs font-black text-white uppercase tracking-[0.4em]">{title}</h2>
+    <>
+      <section className={`py-12 ${isPage ? '' : 'border-b border-zinc-900 bg-black'} overflow-hidden`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-2 h-2 bg-lime rounded-full animate-pulse shadow-[0_0_10px_rgba(179,212,0,0.8)]" />
+            <h2 className="text-xs font-black text-white uppercase tracking-[0.4em]">{title}</h2>
+          </div>
+          {!isPage && (
+            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">تحديث مباشر</div>
+          )}
         </div>
-        {!isPage && (
-          <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">تحديث مباشر</div>
-        )}
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-12">
-        {Object.entries(groupedScores).map(([league, leagueEvents]) => (
-          <div key={league} className="flex flex-col gap-6">
-            <div className="flex items-center gap-4">
-               <h3 className="text-sm font-black text-lime uppercase tracking-widest bg-lime/5 px-4 py-1 border-r-2 border-lime">
-                 {league}
-               </h3>
-               <div className="h-px flex-1 bg-zinc-900" />
-            </div>
-            
-            <div className={`grid grid-cols-1 ${isPage ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6`}>
-              {leagueEvents.map((event) => (
-                <ScoreCard 
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-16">
+          {Object.entries(groupedScores).map(([league, leagueEvents]) => (
+            <div key={league} className="flex flex-col gap-8">
+              <div className="flex items-center gap-4">
+                 <h3 className="text-sm font-black text-lime uppercase tracking-widest bg-lime/5 px-4 py-1 border-r-2 border-lime">
+                   {league}
+                 </h3>
+                 <div className="h-px flex-1 bg-zinc-900" />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {leagueEvents.map((event) => (
+                  <ScoreCard 
                     key={event.idEvent} 
                     event={event} 
                     formatTime={formatTime} 
-                    formatDate={formatDate} 
-                />
-              ))}
+                    formatDate={formatDate}
+                    onClick={() => setSelectedEventId(event.idEvent)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </section>
+          ))}
+        </div>
+      </section>
+
+      <MatchDetailModal 
+        eventId={selectedEventId} 
+        onClose={() => setSelectedEventId(null)} 
+      />
+    </>
   );
 }
 
-function ScoreCard({ event, formatTime, formatDate }: { event: SportsEvent, formatTime: any, formatDate: any }) {
+function ScoreCard({ event, formatTime, formatDate, onClick }: { event: SportsEvent, formatTime: any, formatDate: any, onClick: () => void }) {
   const isLive = event.strStatus === 'NS' ? false : event.strStatus !== 'Match Finished';
 
   return (
     <div 
-      className="bg-zinc-950 border border-zinc-900 p-6 hover:border-lime/30 transition-all group/card relative overflow-hidden"
+      onClick={onClick}
+      className="bg-zinc-950 border border-zinc-900 p-6 hover:border-lime/30 transition-all group/card relative overflow-hidden cursor-pointer active:scale-95 duration-200"
     >
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-lime/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       
       <div className="flex flex-col gap-6 relative z-10">
-        {/* Teams Area */}
         <div className="flex flex-col gap-4">
-          {/* Home Team */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {event.strHomeTeamBadge && (
@@ -103,7 +115,6 @@ function ScoreCard({ event, formatTime, formatDate }: { event: SportsEvent, form
           
           <div className="h-px w-full bg-zinc-900/50" />
 
-          {/* Away Team */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {event.strAwayTeamBadge && (
@@ -119,7 +130,6 @@ function ScoreCard({ event, formatTime, formatDate }: { event: SportsEvent, form
           </div>
         </div>
 
-        {/* Footer info */}
         <div className="pt-4 border-t border-zinc-900 flex items-center justify-between">
           <div className="flex items-center gap-2">
              {isLive ? (
@@ -133,9 +143,14 @@ function ScoreCard({ event, formatTime, formatDate }: { event: SportsEvent, form
                </span>
              )}
           </div>
-          <span className="text-[10px] font-black text-white/40 tracking-widest dxt-numeral">
-            {formatDate(event.strTimestamp)} | {formatTime(event.strTimestamp)}
-          </span>
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-black text-white/40 tracking-widest dxt-numeral">
+              {formatDate(event.strTimestamp)} | {formatTime(event.strTimestamp)}
+            </span>
+            <span className="text-[8px] font-black text-lime uppercase tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              عرض التفاصيل ←
+            </span>
+          </div>
         </div>
       </div>
     </div>
