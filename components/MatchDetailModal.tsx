@@ -104,82 +104,64 @@ export default function MatchDetailModal({ eventId, onClose }: MatchDetailModalP
                 </div>
               </div>
 
-              {/* AI Enrichment Prompt */}
-              {hasNoData && !details.is_ai_generated && (
-                <div className="p-8 border border-zinc-800 bg-zinc-900/20 text-center rounded-sm">
-                   <p className="text-xs font-bold text-zinc-500 mb-6 leading-loose">
-                     لم نتمكن من العثور على تفاصيل الأحداث (الأهداف والبطاقات) في المصدر الأساسي. 
-                     <br /> هل تريد من <span className="text-lime">Ghost Reporter (AI)</span> البحث عنها وتلخيصها لك؟
-                   </p>
-                   <button 
-                    onClick={() => fetchDetails(true)}
-                    disabled={aiLoading}
-                    className="px-8 py-3 bg-lime text-black text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all disabled:opacity-50 flex items-center gap-3 mx-auto"
-                   >
-                     {aiLoading ? (
-                       <>
-                         <div className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                         جاري التحليل...
-                       </>
-                     ) : (
-                       <>استدعاء مراسل الشبح (AI) 🔥</>
-                     )}
-                   </button>
+              {/* Goals & Events */}
+              {(details.strHomeGoalDetails || details.strAwayGoalDetails || 
+                details.strHomeYellowCards || details.strAwayYellowCards || 
+                details.strHomeRedCards || details.strAwayRedCards) && (
+                <div className="grid grid-cols-2 gap-12 relative">
+                   <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-zinc-900 opacity-50" />
+                   
+                   <div className="flex flex-col gap-8">
+                      <div className="flex items-center gap-3 mb-2">
+                         <span className="w-1 h-3 bg-lime" />
+                         <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">أحداث الأرض</h3>
+                      </div>
+                      <EventList events={details.strHomeGoalDetails} type="goal" />
+                      <EventList events={details.strHomeYellowCards} type="yellow" />
+                      <EventList events={details.strHomeRedCards} type="red" />
+                   </div>
+
+                   <div className="flex flex-col gap-8 text-right">
+                      <div className="flex items-center gap-3 mb-2 justify-end">
+                         <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">أحداث الضيف</h3>
+                         <span className="w-1 h-3 bg-lime" />
+                      </div>
+                      <EventList events={details.strAwayGoalDetails} type="goal" align="right" />
+                      <EventList events={details.strAwayYellowCards} type="yellow" align="right" />
+                      <EventList events={details.strAwayRedCards} type="red" align="right" />
+                   </div>
                 </div>
               )}
 
-              {/* Goals & Events */}
-              <div className="grid grid-cols-2 gap-12 relative">
-                 <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-zinc-900 opacity-50" />
-                 
-                 <div className="flex flex-col gap-8">
-                    <div className="flex items-center gap-3 mb-2">
-                       <span className="w-1 h-3 bg-lime" />
-                       <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">أحداث الأرض</h3>
-                    </div>
-                    <EventList events={details.strHomeGoalDetails} type="goal" />
-                    <EventList events={details.strHomeYellowCards} type="yellow" />
-                    <EventList events={details.strHomeRedCards} type="red" />
-                 </div>
-
-                 <div className="flex flex-col gap-8 text-right">
-                    <div className="flex items-center gap-3 mb-2 justify-end">
-                       <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">أحداث الضيف</h3>
-                       <span className="w-1 h-3 bg-lime" />
-                    </div>
-                    <EventList events={details.strAwayGoalDetails} type="goal" align="right" />
-                    <EventList events={details.strAwayYellowCards} type="yellow" align="right" />
-                    <EventList events={details.strAwayRedCards} type="red" align="right" />
-                 </div>
-              </div>
-
               {/* Lineups Preview */}
-              <div className="pt-10 border-t border-zinc-900">
-                 <h3 className="text-[11px] font-black text-lime uppercase tracking-[0.4em] mb-10 flex items-center gap-4">
-                   <span className="flex-shrink-0">التشكيلة المتوقعة / الرسمية</span>
-                   <div className="h-px flex-1 bg-zinc-900" />
-                 </h3>
-                 <div className="grid grid-cols-2 gap-12">
-                    <div className="space-y-6">
-                       <p className="text-[10px] font-black text-white/40 uppercase tracking-widest border-b border-zinc-900 pb-2">{details.strHomeTeam}</p>
-                       <div className="space-y-4">
-                          <LineupSection title="حراسة المرمى" player={details.strHomeLineupGoalkeeper} />
-                          <LineupSection title="الدفاع" player={details.strHomeLineupDefense} />
-                          <LineupSection title="الوسط" player={details.strHomeLineupMidfield} />
-                          <LineupSection title="الهجوم" player={details.strHomeLineupForward} />
-                       </div>
-                    </div>
-                    <div className="space-y-6 text-right">
-                       <p className="text-[10px] font-black text-white/40 uppercase tracking-widest border-b border-zinc-900 pb-2 text-right">{details.strAwayTeam}</p>
-                       <div className="space-y-4">
-                          <LineupSection title="حراسة المرمى" player={details.strAwayLineupGoalkeeper} align="right" />
-                          <LineupSection title="الدفاع" player={details.strAwayLineupDefense} align="right" />
-                          <LineupSection title="الوسط" player={details.strAwayLineupMidfield} align="right" />
-                          <LineupSection title="الهجوم" player={details.strAwayLineupForward} align="right" />
-                       </div>
-                    </div>
-                 </div>
-              </div>
+              {(details.strHomeLineupGoalkeeper || details.strAwayLineupGoalkeeper) && (
+                <div className="pt-10 border-t border-zinc-900">
+                   <h3 className="text-[11px] font-black text-lime uppercase tracking-[0.4em] mb-10 flex items-center gap-4">
+                     <span className="flex-shrink-0">التشكيلة المتوقعة / الرسمية</span>
+                     <div className="h-px flex-1 bg-zinc-900" />
+                   </h3>
+                   <div className="grid grid-cols-2 gap-12">
+                      <div className="space-y-6">
+                         <p className="text-[10px] font-black text-white/40 uppercase tracking-widest border-b border-zinc-900 pb-2">{details.strHomeTeam}</p>
+                         <div className="space-y-4">
+                            <LineupSection title="حراسة المرمى" player={details.strHomeLineupGoalkeeper} />
+                            <LineupSection title="الدفاع" player={details.strHomeLineupDefense} />
+                            <LineupSection title="الوسط" player={details.strHomeLineupMidfield} />
+                            <LineupSection title="الهجوم" player={details.strHomeLineupForward} />
+                         </div>
+                      </div>
+                      <div className="space-y-6 text-right">
+                         <p className="text-[10px] font-black text-white/40 uppercase tracking-widest border-b border-zinc-900 pb-2 text-right">{details.strAwayTeam}</p>
+                         <div className="space-y-4">
+                            <LineupSection title="حراسة المرمى" player={details.strAwayLineupGoalkeeper} align="right" />
+                            <LineupSection title="الدفاع" player={details.strAwayLineupDefense} align="right" />
+                            <LineupSection title="الوسط" player={details.strAwayLineupMidfield} align="right" />
+                            <LineupSection title="الهجوم" player={details.strAwayLineupForward} align="right" />
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
               
               {/* Footer / SofaScore Link */}
               <div className="pt-8 text-center border-t border-zinc-900">
