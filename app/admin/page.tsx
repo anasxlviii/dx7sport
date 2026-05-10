@@ -19,6 +19,26 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [runningGhost, setRunningGhost] = useState(false);
+
+  async function triggerGhostReporter() {
+    if (!confirm('Are you sure you want to trigger the Ghost Reporter? It will fetch the latest news and generate articles automatically.')) return;
+    setRunningGhost(true);
+    try {
+      const response = await fetch('/api/pipeline?secret=dx7-ghost-2024');
+      const data = await response.json();
+      if (data.status === 'success') {
+        alert('Ghost Reporter sweep completed! Check your drafts for new articles.');
+        fetchArticles();
+      } else {
+        alert('Ghost Reporter encountered an issue: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Failed to trigger Ghost Reporter. Please check the logs.');
+    } finally {
+      setRunningGhost(false);
+    }
+  }
 
   useEffect(() => {
     fetchArticles();
@@ -87,6 +107,13 @@ export default function AdminDashboard() {
           >
             🎮 إدارة التسلية
           </Link>
+          <button
+            onClick={triggerGhostReporter}
+            disabled={runningGhost}
+            className="bg-purple-900 text-white border border-purple-800 px-6 py-2.5 font-bold uppercase tracking-widest text-xs hover:border-purple-500 hover:bg-purple-800 transition-all disabled:opacity-50"
+          >
+            {runningGhost ? '👻 جاري البحث...' : '👻 تشغيل المراسل الشبح'}
+          </button>
           <Link
             href="/admin/new"
             className="bg-lime text-black px-6 py-2.5 font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors"
