@@ -166,7 +166,7 @@ LANGUAGE AND WRITING RULES:
    - Use bullet points `* ` for tactical breakdowns, timelines, or lists.
    - Use **bold text** for player names, team names, crucial stats, and key concepts.
    - Keep paragraphs concise (3-4 sentences maximum) but write many paragraphs to achieve the length requirement.
-6. SOURCES: Do NOT hallucinate sources. The `sources` array must ONLY contain actual URLs that appear in the LIVE SEARCH CONTEXT. If no real URL is provided, omit it or use the source domain only but never fabricate a fake specific article link.
+6. SOURCES: Do NOT hallucinate sources. The \`sources\` array must ONLY contain actual URLs that appear in the LIVE SEARCH CONTEXT. If no real URL is provided, omit it or use the source domain only but never fabricate a fake specific article link.
 
 QUIZ SPECIFIC RULES:
 - If category is 'quiz', the 'quizData' field MUST be populated.

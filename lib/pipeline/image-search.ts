@@ -1,3 +1,5 @@
+/**
+ * DuckDuckGo Image Search
  * Uses DDG's unofficial image search API to pull real web images - no API key needed.
  */
 import { executeWithGemini } from './gemini-client';
