@@ -1,6 +1,5 @@
-import { GoogleGenAI, Type, Schema } from '@google/genai';
-
-const client = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY || '' });
+import { Type, Schema } from '@google/genai';
+import { executeWithGemini } from './gemini-client';
 
 export interface ExtractedTopic {
   category: 'news' | 'comparison' | 'poll' | 'match_report' | 'transfer' | 'quiz';
@@ -69,16 +68,18 @@ Always interpret "this season" or "next month" relative to the current date.`;
       });
     }
 
-    const result = await client.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts }],
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: topicSchema,
-        temperature: 0.2,
-        tools: [{ googleSearch: {} }]
-      }
-    });
+    const result = await executeWithGemini((client) => 
+      client.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [{ role: 'user', parts }],
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: topicSchema,
+          temperature: 0.2,
+          tools: [{ googleSearch: {} }]
+        }
+      })
+    );
 
     const responseText = result.text?.trim() || '{}';
     const parsed = JSON.parse(responseText);
