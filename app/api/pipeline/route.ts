@@ -49,10 +49,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    message: 'Pipeline API is running',
-    configured: !!process.env.GOOGLE_AI_API_KEY,
-  });
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const secret = searchParams.get('secret');
+
+  // Simple security check
+  if (secret !== process.env.PIPELINE_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { runAutonomousGhost } = await import('@/lib/pipeline/autonomous');
+    const results = await runAutonomousGhost();
+    
+    return NextResponse.json({
+      status: 'success',
+      message: 'Autonomous Ghost Reporter finished run',
+      results
+    });
+  } catch (error) {
+    console.error('Autonomous run failed:', error);
+    return NextResponse.json({ error: 'Autonomous run failed', details: String(error) }, { status: 500 });
+  }
 }
