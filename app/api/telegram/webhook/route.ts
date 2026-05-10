@@ -29,14 +29,22 @@ export async function POST(req: NextRequest) {
     const { chat, text, from } = body.message;
     const userId = from.id.toString();
 
+    console.log(`[Telegram Webhook] Incoming message from ${userId}: "${text}"`);
+
     // Security check: Only respond to authorized users
-    const authorizedIds = (TELEGRAM_CHAT_ID || '').split(',');
+    const rawIds = TELEGRAM_CHAT_ID || '';
+    const authorizedIds = rawIds.split(',').map(id => id.trim());
+    
+    console.log(`[Telegram Webhook] Authorized IDs: [${authorizedIds.join(', ')}]`);
+    
     if (!authorizedIds.includes(userId)) {
-      console.warn(`[Telegram Webhook] Unauthorized access attempt from user: ${userId}`);
+      console.warn(`[Telegram Webhook] UNAUTHORIZED USER: ${userId}. Message ignored.`);
       return NextResponse.json({ ok: true });
     }
 
-    const lowerText = text.toLowerCase().trim();
+    console.log(`[Telegram Webhook] User ${userId} is AUTHORIZED. Proceeding...`);
+
+    const lowerText = (text || '').toLowerCase().trim();
 
     // Command: /start
     if (lowerText === '/start' || lowerText === '/help') {
