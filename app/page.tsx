@@ -6,6 +6,8 @@ import { ArticleCard } from '@/components/ArticleCard';
 import { FeedFilter } from '@/components/FeedFilter';
 import { ScoreSection } from '@/components/ScoreSection';
 import { getTopLeaguesScores } from '@/lib/pipeline/sportsdb';
+import { AdScriptInjector } from '@/components/AdScriptInjector';
+
 
 export const revalidate = 60; // Revalidate every minute
 
