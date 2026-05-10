@@ -57,22 +57,40 @@ export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
   ];
   
   try {
-    // 1. Try to fetch all events for today (Live/Scheduled)
-    // Using latereventsleague or eventsday
+    // Helper to fetch for a specific date
+    const fetchForDate = async (dateStr: string) => {
+      const results = await Promise.all(leagues.map(async (id) => {
+        try {
+          const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsday.php?d=${dateStr}&l=${id}`;
+          const response = await axios.get(url);
+          return response.data.events || [];
+        } catch {
+          return [];
+        }
+      }));
+      return results.flat();
+    };
+
     const today = new Date().toISOString().split('T')[0];
-    const liveResults = await Promise.all(leagues.map(async (id) => {
-      try {
-        const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsday.php?d=${today}&l=${id}`;
-        const response = await axios.get(url);
-        return response.data.events || [];
-      } catch {
-        return [];
+    let allEvents = await fetchForDate(today);
+
+    // SMART LOGIC: If all games today have finished, try tomorrow's games
+    const allFinished = allEvents.length > 0 && allEvents.every(e => e.strStatus === 'Match Finished' || e.strStatus === 'FT');
+    
+    if (allFinished || allEvents.length === 0) {
+      const tomorrowDate = new Date();
+      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+      const tomorrowStr = tomorrowDate.toISOString().split('T')[0];
+      const tomorrowEvents = await fetchForDate(tomorrowStr);
+      
+      if (tomorrowEvents.length > 0) {
+        // We'll show today's finished matches AND tomorrow's matches
+        // but only if we have room, otherwise prioritize tomorrow
+        allEvents = [...tomorrowEvents, ...allEvents];
       }
-    }));
+    }
 
-    let allEvents = liveResults.flat();
-
-    // 2. If today is empty (e.g. early morning), fallback to latest past results
+    // 2. If we still have very few events, fallback to latest past results
     if (allEvents.length < 5) {
       const pastResults = await Promise.all(leagues.map(id => getLatestResults(id)));
       pastResults.forEach(events => {
@@ -82,15 +100,28 @@ export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
       });
     }
     
-    // Sort by timestamp descending
+    // Sort by status (Live first, then Scheduled, then Finished) and then by timestamp
     return allEvents
       .filter((v, i, a) => a.findIndex(t => t.idEvent === v.idEvent) === i) // Unique
-      .sort((a, b) => new Date(b.strTimestamp).getTime() - new Date(a.strTimestamp).getTime());
+      .sort((a, b) => {
+        // Prioritize Live/In Progress
+        const isLiveA = a.strStatus?.toLowerCase().includes('live') || a.strStatus === '1H' || a.strStatus === '2H' ? 1 : 0;
+        const isLiveB = b.strStatus?.toLowerCase().includes('live') || b.strStatus === '1H' || b.strStatus === '2H' ? 1 : 0;
+        if (isLiveA !== isLiveB) return isLiveB - isLiveA;
+
+        // Then Scheduled (Next Day)
+        const isNS_A = a.strStatus === 'NS' || a.strStatus === 'Not Started' ? 1 : 0;
+        const isNS_B = b.strStatus === 'NS' || b.strStatus === 'Not Started' ? 1 : 0;
+        if (isNS_A !== isNS_B) return isNS_B - isNS_A;
+
+        return new Date(b.strTimestamp).getTime() - new Date(a.strTimestamp).getTime();
+      });
   } catch (error) {
     console.error('[SportsDB] Top leagues fetch failed:', error);
     return [];
   }
 }
+
 
 
 /**

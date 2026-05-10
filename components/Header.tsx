@@ -56,14 +56,6 @@ export default function Header() {
 
           </nav>
 
-          <div className="flex items-center gap-4">
-            <Link
-              href="/admin"
-              className="px-4 py-1.5 text-xs font-bold uppercase tracking-widest border border-border-subtle text-gray-500 hover:border-lime hover:text-lime transition-all"
-            >
-              لوحة التحكم
-            </Link>
-          </div>
         </div>
       </div>
     </header>

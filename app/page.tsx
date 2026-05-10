@@ -9,7 +9,7 @@ import { getTopLeaguesScores } from '@/lib/pipeline/sportsdb';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
 
 
-export const revalidate = 60; // Revalidate every minute
+export const revalidate = 300; // Revalidate every 5 minutes
 
 async function getData(retries = 5) {
   for (let i = 0; i < retries; i++) {
@@ -71,8 +71,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Live Scores Section */}
-      <ScoreSection scores={scores} />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -234,7 +232,8 @@ export default async function Home() {
             ))}
           </div>
         </div>
-      </section>
+      {/* Live Scores Section */}
+      <ScoreSection scores={scores} />
     </div>
   );
 }
