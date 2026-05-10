@@ -232,6 +232,8 @@ export default async function Home() {
             ))}
           </div>
         </div>
+      </section>
+
       {/* Live Scores Section */}
       <ScoreSection scores={scores} />
     </div>
