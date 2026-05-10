@@ -192,19 +192,20 @@ Do not use markdown code blocks like \`\`\`json, just return the data matching t
 ${rawSearchContext ? rawSearchContext : 'No recent news found. Rely on verified knowledge.'}
 `;
 
-    const result = await executeWithGemini((client) => 
-      client.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\n${prompt}` }] }],
-        config: {
+    const result = await executeWithGemini(async (client) => {
+      const model = client.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        generationConfig: {
           responseMimeType: 'application/json',
-          responseSchema: articleSchema,
+          responseSchema: articleSchema as any,
           temperature: 0.4
         }
-      })
-    );
+      });
+      const res = await model.generateContent(`${SYSTEM_PROMPT}\n\n${prompt}`);
+      return res.response;
+    });
 
-    const responseText = result.text?.trim() || '{}';
+    const responseText = result.text()?.trim() || '{}';
     const parsed = JSON.parse(responseText);
 
     // Sanitize content: the Gemini API sometimes returns literal \n escape
@@ -232,13 +233,12 @@ export async function regenerateArticle(
   originalContent: string,
   feedback: string
 ): Promise<string> {
-  const result = await executeWithGemini((client) => 
-    client.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: `Revise this article based on feedback: ${feedback}\n\nContent: ${originalContent}` }] }]
-    })
-  );
-  return result.text || '';
+  const result = await executeWithGemini(async (client) => {
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const res = await model.generateContent(`Revise this article based on feedback: ${feedback}\n\nContent: ${originalContent}`);
+    return res.response;
+  });
+  return result.text() || '';
 }
 
 export async function optimizeForSEO(content: string, topic: string): Promise<{
@@ -246,13 +246,12 @@ export async function optimizeForSEO(content: string, topic: string): Promise<{
   metaDescription: string;
   keywords: string[];
 }> {
-  const result = await executeWithGemini((client) => 
-    client.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: `Optimize this for SEO: ${content.slice(0, 2000)}` }] }]
-    })
-  );
-  const responseText = result.text?.trim() || '{}';
+  const result = await executeWithGemini(async (client) => {
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const res = await model.generateContent(`Optimize this for SEO: ${content.slice(0, 2000)}`);
+    return res.response;
+  });
+  const responseText = result.text()?.trim() || '{}';
   const cleanJson = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   return JSON.parse(cleanJson);
 }

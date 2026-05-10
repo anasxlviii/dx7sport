@@ -104,13 +104,9 @@ export async function selectBestImage(query: string, contextSummary?: string): P
   if (results.length === 1) return results[0].url;
 
   try {
-    const result = await executeWithGemini((client) => 
-      client.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [{
-          role: 'user',
-          parts: [{
-            text: `You are a professional Photo Editor for a sports news site. 
+    const result = await executeWithGemini(async (client) => {
+      const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const res = await model.generateContent(`You are a professional Photo Editor for a sports news site. 
             ARTICLE CONTEXT: ${contextSummary || query}
             
             Below are 7 image search results for the query: "${query}".
@@ -120,13 +116,11 @@ export async function selectBestImage(query: string, contextSummary?: string): P
             RESULTS:
             ${results.map((r, i) => `[ID: ${i}] TITLE: ${r.title} | SOURCE: ${r.source}`).join('\n')}
             
-            Return ONLY the ID number of the best image.`
-          }]
-        }]
-      })
-    );
+            Return ONLY the ID number of the best image.`);
+      return res.response;
+    });
 
-    const bestId = parseInt(result.text?.trim() || '0');
+    const bestId = parseInt(result.text()?.trim() || '0');
     const selected = results[bestId] || results[0];
     return selected.url;
   } catch (error) {

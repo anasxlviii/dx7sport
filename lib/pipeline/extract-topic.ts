@@ -68,20 +68,21 @@ Always interpret "this season" or "next month" relative to the current date.`;
       });
     }
 
-    const result = await executeWithGemini((client) => 
-      client.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [{ role: 'user', parts }],
-        config: {
+    const result = await executeWithGemini(async (client) => {
+      const model = client.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        generationConfig: {
           responseMimeType: 'application/json',
-          responseSchema: topicSchema,
-          temperature: 0.2,
-          tools: [{ googleSearch: {} }]
-        }
-      })
-    );
+          responseSchema: topicSchema as any,
+          temperature: 0.2
+        },
+        tools: [{ googleSearch: {} }] as any
+      });
+      const res = await model.generateContent({ contents: [{ role: 'user', parts }] });
+      return res.response;
+    });
 
-    const responseText = result.text?.trim() || '{}';
+    const responseText = result.text()?.trim() || '{}';
     const parsed = JSON.parse(responseText);
 
     return {

@@ -1,4 +1,5 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
 
 function getKeys(): string[] {
   // Support either a comma-separated list of keys, or the old single key
@@ -27,7 +28,7 @@ export async function executeWithGemini<T>(
   let attempts = 0;
   while (attempts < keys.length) {
     const key = keys[currentKeyIndex];
-    const client = new GoogleGenAI({ apiKey: key });
+    const client = new GoogleGenerativeAI(key);
 
     try {
       return await operation(client);
