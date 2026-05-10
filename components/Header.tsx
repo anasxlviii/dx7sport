@@ -41,11 +41,19 @@ export default function Header() {
               المقارنات
             </Link>
             <Link
+              href="/scores"
+              className="text-sm font-bold uppercase tracking-widest text-lime hover:text-white transition-colors flex items-center gap-2"
+            >
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              النتائج
+            </Link>
+            <Link
               href="/entertainment"
               className="text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-lime transition-colors"
             >
               تسلية
             </Link>
+
           </nav>
 
           <div className="flex items-center gap-4">

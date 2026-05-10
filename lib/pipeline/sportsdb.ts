@@ -12,7 +12,12 @@ export interface SportsEvent {
   strLeague: string;
   strTimestamp: string;
   strThumb: string;
+  strHomeTeamBadge?: string;
+  strAwayTeamBadge?: string;
+  strStatus?: string;
+  strProgress?: string;
 }
+
 
 
 export const TOP_LEAGUES = {
@@ -40,6 +45,7 @@ export async function getLatestResults(leagueId = TOP_LEAGUES.PREMIER_LEAGUE): P
 
 /**
  * Fetches scores for the top 5 leagues
+ * Tries to fetch today's live scores first, falls back to latest results
  */
 export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
   const leagues = [
@@ -50,26 +56,42 @@ export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
     TOP_LEAGUES.LIGUE_1
   ];
   
-  const allEvents: SportsEvent[] = [];
-  
   try {
-    const results = await Promise.all(leagues.map(id => getLatestResults(id)));
-    results.forEach(events => {
-      // Get the top 3 most recent events from each league
-      if (events && events.length > 0) {
-        allEvents.push(...events.slice(0, 3));
+    // 1. Try to fetch all events for today (Live/Scheduled)
+    // Using latereventsleague or eventsday
+    const today = new Date().toISOString().split('T')[0];
+    const liveResults = await Promise.all(leagues.map(async (id) => {
+      try {
+        const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsday.php?d=${today}&l=${id}`;
+        const response = await axios.get(url);
+        return response.data.events || [];
+      } catch {
+        return [];
       }
-    });
+    }));
+
+    let allEvents = liveResults.flat();
+
+    // 2. If today is empty (e.g. early morning), fallback to latest past results
+    if (allEvents.length < 5) {
+      const pastResults = await Promise.all(leagues.map(id => getLatestResults(id)));
+      pastResults.forEach(events => {
+        if (events && events.length > 0) {
+          allEvents.push(...events.slice(0, 3));
+        }
+      });
+    }
     
     // Sort by timestamp descending
-    return allEvents.sort((a, b) => 
-      new Date(b.strTimestamp).getTime() - new Date(a.strTimestamp).getTime()
-    );
+    return allEvents
+      .filter((v, i, a) => a.findIndex(t => t.idEvent === v.idEvent) === i) // Unique
+      .sort((a, b) => new Date(b.strTimestamp).getTime() - new Date(a.strTimestamp).getTime());
   } catch (error) {
     console.error('[SportsDB] Top leagues fetch failed:', error);
     return [];
   }
 }
+
 
 /**
  * Fetches upcoming big matches
