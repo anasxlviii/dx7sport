@@ -1,7 +1,6 @@
-/**
- * DuckDuckGo Image Search
  * Uses DDG's unofficial image search API to pull real web images - no API key needed.
  */
+import { executeWithGemini } from './gemini-client';
 
 export interface ImageResult {
   url: string;
@@ -94,9 +93,50 @@ export async function searchImages(
 }
 
 /**
- * Convenience: get the single best image URL for a topic.
+ * AI-Driven Contextual Image Selection.
+ * Takes the top 5-7 results from search and asks Gemini to pick the most relevant one.
  */
-export async function getBestImage(query: string): Promise<string | null> {
-  const results = await searchImages(query, 3);
-  return results[0]?.url || null;
+export async function selectBestImage(query: string, contextSummary?: string): Promise<string | null> {
+  const results = await searchImages(query, 7);
+  if (results.length === 0) return null;
+  if (results.length === 1) return results[0].url;
+
+  try {
+    const result = await executeWithGemini((client) => 
+      client.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `You are a professional Photo Editor for a sports news site. 
+            ARTICLE CONTEXT: ${contextSummary || query}
+            
+            Below are 7 image search results for the query: "${query}".
+            Pick the ONE image that is most likely to be a high-quality, professional photograph directly relevant to the article context. 
+            Avoid generic logos, unrelated thumbnails, or low-quality graphics.
+            
+            RESULTS:
+            ${results.map((r, i) => `[ID: ${i}] TITLE: ${r.title} | SOURCE: ${r.source}`).join('\n')}
+            
+            Return ONLY the ID number of the best image.`
+          }]
+        }]
+      })
+    );
+
+    const bestId = parseInt(result.text?.trim() || '0');
+    const selected = results[bestId] || results[0];
+    return selected.url;
+  } catch (error) {
+    console.error('[ImageSearch] AI selection failed, falling back to first result:', error);
+    return results[0].url;
+  }
+}
+
+/**
+ * Convenience: get the single best image URL for a topic.
+ * Now uses the AI selection logic by default.
+ */
+export async function getBestImage(query: string, contextSummary?: string): Promise<string | null> {
+  return selectBestImage(query, contextSummary);
 }

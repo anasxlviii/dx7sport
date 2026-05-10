@@ -5,6 +5,7 @@ import { getBestImage } from './image-search';
 import { db } from '../db/db';
 import { articles, sources } from '../db/schema';
 import slugify from 'slugify';
+import { sendTelegramAlert } from './telegram';
 
 export interface PipelineInput {
   postContent?: string;
@@ -115,7 +116,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       try {
         // Build a good English image search query from the entities
         const imageQuery = [...topic.entities.slice(0, 2), 'football'].join(' ');
-        featuredImage = await getBestImage(imageQuery);
+        featuredImage = await getBestImage(imageQuery, topic.summary);
         console.log('[Pipeline] Image found:', featuredImage ? 'yes' : 'no');
       } catch {
         console.warn('[Pipeline] Image search failed, continuing without image');
@@ -172,6 +173,13 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       steps[3].status = 'completed';
       steps[3].result = { articleId: article.id };
       steps[3].completedAt = new Date();
+
+      // Trigger Telegram Alert
+      try {
+        await sendTelegramAlert(article.title, article.id);
+      } catch (tgError) {
+        console.warn('[Pipeline] Telegram alert failed:', tgError);
+      }
 
       return {
         success: true,
