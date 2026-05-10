@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import PipelineLogModal from '@/components/PipelineLogModal';
 
 interface Article {
   id: number;
@@ -20,15 +22,22 @@ export default function AdminDashboard() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [runningGhost, setRunningGhost] = useState(false);
+  const [pipelineResults, setPipelineResults] = useState<any[]>([]);
+  const [showLogModal, setShowLogModal] = useState(false);
 
   async function triggerGhostReporter() {
     if (!confirm('Are you sure you want to trigger the Ghost Reporter? It will fetch the latest news and generate articles automatically.')) return;
+    
     setRunningGhost(true);
+    setPipelineResults([]);
+    
     try {
       const response = await fetch('/api/pipeline?secret=dx7-ghost-2024');
       const data = await response.json();
-      if (data.status === 'success') {
-        alert('Ghost Reporter sweep completed! Check your drafts for new articles.');
+      
+      if (data.status === 'success' || data.results) {
+        setPipelineResults(data.results || []);
+        setShowLogModal(true);
         fetchArticles();
       } else {
         alert('Ghost Reporter encountered an issue: ' + (data.error || 'Unknown error'));
@@ -244,6 +253,11 @@ export default function AdminDashboard() {
           </table>
         </div>
       )}
+      <PipelineLogModal 
+        isOpen={showLogModal} 
+        onClose={() => setShowLogModal(false)} 
+        logs={pipelineResults} 
+      />
     </div>
   );
 }
