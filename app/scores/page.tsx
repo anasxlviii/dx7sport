@@ -1,9 +1,5 @@
-import { db } from '@/lib/db/db';
-import { settings } from '@/lib/db/schema';
 import { getTopLeaguesScores } from '@/lib/pipeline/sportsdb';
 import { ScoreSection } from '@/components/ScoreSection';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 export const revalidate = 60;
 
@@ -12,9 +8,8 @@ export default async function ScoresPage() {
   
   return (
     <div className="min-h-screen bg-black" dir="rtl">
-      <Header />
-      
       <main className="pt-32 pb-24">
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
           <div className="inline-block px-4 py-1.5 mb-8 border border-lime/50 text-lime text-[10px] font-black uppercase tracking-[0.4em] bg-lime/5">
             مركز النتائج المباشرة
@@ -39,8 +34,7 @@ export default async function ScoresPage() {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }
+
