@@ -19,7 +19,8 @@ let currentKeyIndex = 0;
  * available API key if a 429 (Quota Exceeded) error occurs.
  */
 export async function executeWithGemini<T>(
-  operation: (client: GoogleGenAI) => Promise<T>
+  operation: (client: GoogleGenerativeAI) => Promise<T>
+
 ): Promise<T> {
   if (keys.length === 0) {
     throw new Error('No Google AI API keys configured. Please set GOOGLE_AI_API_KEYS or GOOGLE_AI_API_KEY in .env');
