@@ -4,36 +4,37 @@ import { articles as articlesTable, settings } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { ArticleCard } from '@/components/ArticleCard';
 import { FeedFilter } from '@/components/FeedFilter';
-import { AdScriptInjector } from '@/components/AdScriptInjector';
+import { ScoreSection } from '@/components/ScoreSection';
+import { getTopLeaguesScores } from '@/lib/pipeline/sportsdb';
 
 export const revalidate = 60; // Revalidate every minute
 
 async function getData(retries = 5) {
-
   for (let i = 0; i < retries; i++) {
     try {
-      const [allArticles, allSettings] = await Promise.all([
+      const [allArticles, allSettings, scores] = await Promise.all([
         db.select().from(articlesTable).where(eq(articlesTable.status, 'published')).orderBy(desc(articlesTable.id)).limit(40),
-        db.select().from(settings)
+        db.select().from(settings),
+        getTopLeaguesScores()
       ]);
 
       const settingsMap: Record<string, string> = {};
       allSettings.forEach(s => settingsMap[s.key] = s.value || '');
 
-      return { allArticles, settingsMap };
+      return { allArticles, settingsMap, scores };
     } catch (err) {
       console.error(`[Homepage] DB error (attempt ${i + 1}/${retries}):`, err);
-      if (i === retries - 1) return { allArticles: [], settingsMap: {} }; // Return empty instead of throwing to prevent build failure
-      // Longer wait for Neon to wake up if it's sleeping
+      if (i === retries - 1) return { allArticles: [], settingsMap: {}, scores: [] };
       const delay = Math.min(1000 * Math.pow(2, i), 5000); 
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  return { allArticles: [], settingsMap: {} };
+  return { allArticles: [], settingsMap: {}, scores: [] };
 }
 
 export default async function Home() {
-  const { allArticles, settingsMap } = await getData();
+  const { allArticles, settingsMap, scores } = await getData();
+
   const featuredArticle = allArticles.length > 0 ? allArticles[0] : null;
   const sidebarArticles = allArticles.slice(1, 4);
   const feedArticles = allArticles.slice(4);
@@ -46,6 +47,7 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-black py-24 dxt-hero-pattern">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 text-center">
           <div className="inline-block px-4 py-1.5 mb-8 border border-lime/50 text-lime text-[10px] font-black uppercase tracking-[0.4em] bg-lime/5">
             أخبار حصرية وتغطية شاملة
@@ -67,6 +69,9 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Live Scores Section */}
+      <ScoreSection scores={scores} />
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-end justify-between mb-12">
@@ -74,6 +79,7 @@ export default async function Home() {
             <h2 className="text-xs font-black text-lime uppercase tracking-[0.4em] mb-3">أبرز العناوين</h2>
             <h3 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">آخر المستجدات</h3>
           </div>
+
           <div className="h-px flex-1 bg-zinc-900 mx-10 hidden md:block mb-3" />
         </div>
 
