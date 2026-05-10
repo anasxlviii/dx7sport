@@ -161,9 +161,9 @@ LANGUAGE AND WRITING RULES:
 3. Be fully autonomous: write the COMPLETE article content yourself. DO NOT leave placeholders.
 4. ARTICLE LENGTH & DEPTH: The article MUST BE EXTREMELY LONG AND IN-DEPTH. Aim for a minimum of 1200-1500 words. Provide extreme tactical depth, historical context, background stories, and deep analysis to keep readers engaged.
 5. VISUAL FORMATTING & STRUCTURE: You MUST use rich Markdown formatting to visually guide the reader:
-   - Use `##` (H2) and `###` (H3) for clear, descriptive section headings.
-   - Use `> ` (blockquotes) for important quotes, statements, or highlighted takeaways.
-   - Use bullet points `* ` for tactical breakdowns, timelines, or lists.
+   - Use \`##\` (H2) and \`###\` (H3) for clear, descriptive section headings.
+   - Use \`> \` (blockquotes) for important quotes, statements, or highlighted takeaways.
+   - Use bullet points \`* \` for tactical breakdowns, timelines, or lists.
    - Use **bold text** for player names, team names, crucial stats, and key concepts.
    - Keep paragraphs concise (3-4 sentences maximum) but write many paragraphs to achieve the length requirement.
 6. SOURCES: Do NOT hallucinate sources. The \`sources\` array must ONLY contain actual URLs that appear in the LIVE SEARCH CONTEXT. If no real URL is provided, omit it or use the source domain only but never fabricate a fake specific article link.
