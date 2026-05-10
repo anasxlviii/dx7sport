@@ -78,19 +78,24 @@ export async function POST(req: NextRequest) {
     // General Chat with Gemini
     await sendTelegramMessage(userId, "_Thinking..._");
     
-    const aiResponse = await executeWithGemini(async (client) => {
-      const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      const chat = model.startChat({
-        history: [
-          { role: 'user', parts: [{ text: "You are the AI assistant for dx7sport.com, a premium football blog. You are talking to the owner via Telegram. Be professional, concise, and passionate about football." }] },
-          { role: 'model', parts: [{ text: "Understood. I am the Ghost Reporter AI, ready to assist with the site or discuss football news." }] },
-        ],
+    try {
+      const aiResponse = await executeWithGemini(async (client) => {
+        const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const chat = model.startChat({
+          history: [
+            { role: 'user', parts: [{ text: "You are the AI assistant for dx7sport.com, a premium football blog. You are talking to the owner via Telegram. Be professional, concise, and passionate about football." }] },
+            { role: 'model', parts: [{ text: "Understood. I am the Ghost Reporter AI, ready to assist with the site or discuss football news." }] },
+          ],
+        });
+        const result = await chat.sendMessage(text);
+        return result.response.text();
       });
-      const result = await chat.sendMessage(text);
-      return result.response.text();
-    });
 
-    await sendTelegramMessage(userId, aiResponse);
+      await sendTelegramMessage(userId, aiResponse);
+    } catch (geminiError) {
+      console.error('[Telegram Webhook] Gemini Chat Error:', geminiError);
+      await sendTelegramMessage(userId, "❌ *AI Error:* I'm having trouble connecting to my brain right now. Please try again in a moment.");
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
