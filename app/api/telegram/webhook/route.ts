@@ -29,8 +29,9 @@ export async function POST(req: NextRequest) {
     const { chat, text, from } = body.message;
     const userId = from.id.toString();
 
-    // Security check: Only respond to the owner
-    if (userId !== TELEGRAM_CHAT_ID) {
+    // Security check: Only respond to authorized users
+    const authorizedIds = (TELEGRAM_CHAT_ID || '').split(',');
+    if (!authorizedIds.includes(userId)) {
       console.warn(`[Telegram Webhook] Unauthorized access attempt from user: ${userId}`);
       return NextResponse.json({ ok: true });
     }
