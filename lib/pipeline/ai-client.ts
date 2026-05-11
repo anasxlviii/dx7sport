@@ -151,10 +151,10 @@ export async function executeWithAI<T>(
             temperature: options.temperature ?? 0.4,
             // Lower safety thresholds to prevent blocks on sports news (injuries, rivalry, etc.)
             safetySettings: [
-              { category: 'HATE_SPEECH', threshold: 'BLOCK_NONE' },
-              { category: 'HARASSMENT', threshold: 'BLOCK_NONE' },
-              { category: 'DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-              { category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+              { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+              { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+              { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+              { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
             ] as any,
           },
         });
