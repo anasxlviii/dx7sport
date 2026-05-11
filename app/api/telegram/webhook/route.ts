@@ -80,16 +80,15 @@ export async function POST(req: NextRequest) {
     
     try {
       const aiResponse = await executeWithGemini(async (client) => {
-        const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-        const chat = model.startChat({
-          history: [
-            { role: 'user', parts: [{ text: "You are the AI assistant for dx7sport.com, a premium football blog. You are talking to the owner via Telegram. Be professional, concise, and passionate about football." }] },
-            { role: 'model', parts: [{ text: "Understood. I am the Ghost Reporter AI, ready to assist with the site or discuss football news." }] },
+        const res = await client.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: [
+            { role: 'user', parts: [{ text: 'You are the AI assistant for dx7sport.com, a premium football blog. You are talking to the owner via Telegram. Be professional, concise, and passionate about football.' }] },
+            { role: 'model', parts: [{ text: 'Understood. I am the Ghost Reporter AI, ready to assist with the site or discuss football news.' }] },
+            { role: 'user', parts: [{ text }] },
           ],
         });
-        const result = await chat.sendMessage(text);
-        return result.response.text();
+        return res.text ?? 'لم أتمكن من الرد الآن، حاول مجدداً.';
       });
 
       await sendTelegramMessage(userId, aiResponse);

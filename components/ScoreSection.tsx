@@ -57,9 +57,14 @@ export function ScoreSection({ scores, title = "نتائج الدوريات ال
           {Object.entries(groupedScores).map(([league, leagueEvents]) => (
             <div key={league} className="flex flex-col gap-8">
               <div className="flex items-center gap-4">
-                 <h3 className="text-sm font-black text-lime uppercase tracking-widest bg-lime/5 px-4 py-1 border-r-2 border-lime">
-                   {league}
-                 </h3>
+                 <div className="flex items-center gap-4 bg-zinc-950/50 pr-6 pl-4 py-2 border border-zinc-900 rounded-sm">
+                   {leagueEvents[0]?.strLeagueBadge && (
+                     <img src={leagueEvents[0].strLeagueBadge} alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(179,212,0,0.2)]" />
+                   )}
+                   <h3 className="text-sm font-black text-lime uppercase tracking-widest">
+                     {league}
+                   </h3>
+                 </div>
                  <div className="h-px flex-1 bg-zinc-900" />
               </div>
               
