@@ -145,7 +145,14 @@ export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
 
     // Attach league badges & FILTER Israeli league (Safety)
     allEvents = allEvents
-      .filter((event) => event.idLeague !== '4344')
+      .filter((event) => 
+        event.idLeague !== '4344' && 
+        !event.strLeague?.toLowerCase().includes('israel') &&
+        !event.strHomeTeam?.toLowerCase().includes('maccabi') &&
+        !event.strAwayTeam?.toLowerCase().includes('maccabi') &&
+        !event.strHomeTeam?.toLowerCase().includes('hapoel') &&
+        !event.strAwayTeam?.toLowerCase().includes('hapoel')
+      )
       .map((event) => ({
         ...event,
         strLeagueBadge: LEAGUE_BADGES[event.idLeague] || event.strLeagueBadge,
@@ -155,18 +162,9 @@ export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
     return allEvents
       .filter((v, i, a) => a.findIndex((t) => t.idEvent === v.idEvent) === i)
       .sort((a, b) => {
-        const isLiveA =
-          a.strStatus?.toLowerCase().includes('live') ||
-          a.strStatus === '1H' ||
-          a.strStatus === '2H'
-            ? 1
-            : 0;
-        const isLiveB =
-          b.strStatus?.toLowerCase().includes('live') ||
-          b.strStatus === '1H' ||
-          b.strStatus === '2H'
-            ? 1
-            : 0;
+        const isLive = (s: string) => ['1H', '2H', 'HT', 'LIVE', 'P2', 'P1'].includes(s?.toUpperCase());
+        const isLiveA = isLive(a.strStatus) || a.strStatus?.includes("'") ? 1 : 0;
+        const isLiveB = isLive(b.strStatus) || b.strStatus?.includes("'") ? 1 : 0;
         if (isLiveA !== isLiveB) return isLiveB - isLiveA;
 
         const isNS_A = a.strStatus === 'NS' || a.strStatus === 'Not Started' ? 1 : 0;

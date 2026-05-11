@@ -35,8 +35,10 @@ export async function runAutonomousGhost() {
       const match = matchEvents[0];
       
       // EXCLUSION FILTER: Skip if match involves Israeli entities (Safety)
-      if (match.strEvent.toLowerCase().includes('israel') || 
-          match.strLeague?.toLowerCase().includes('israel')) {
+      const lowerTopic = match.strEvent.toLowerCase();
+      const safetyKeywords = ['israel', 'maccabi', 'hapoel', 'beitar', 'tel aviv', 'haifa', 'jerusalem'];
+      if (safetyKeywords.some(kw => lowerTopic.includes(kw))) {
+        console.log(`[Safety] Skipping Israeli entity: ${match.strEvent}`);
         continue;
       }
 

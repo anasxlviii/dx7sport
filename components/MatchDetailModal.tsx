@@ -25,6 +25,20 @@ export default function MatchDetailModal({ eventId, onClose }: MatchDetailModalP
       const res = await fetch(url, { method });
       const data = await res.json();
       
+      // NUCLEAR SAFETY FILTER: Block Israeli entities
+      const safetyKeywords = ['israel', 'maccabi', 'hapoel', 'beitar', 'tel aviv', 'haifa', 'jerusalem'];
+      const isUnsafe = safetyKeywords.some(kw => 
+        data.strLeague?.toLowerCase().includes(kw) || 
+        data.strHomeTeam?.toLowerCase().includes(kw) || 
+        data.strAwayTeam?.toLowerCase().includes(kw)
+      );
+
+      if (isUnsafe) {
+        setDetails(null);
+        onClose();
+        return;
+      }
+
       setDetails(data);
     } catch (err) {
       console.error(err);

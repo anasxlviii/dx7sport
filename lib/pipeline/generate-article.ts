@@ -198,18 +198,15 @@ LANGUAGE AND WRITING RULES:
 6. SOURCES: Do NOT hallucinate sources. The \`sources\` array must ONLY contain actual URLs that appear in the LIVE SEARCH CONTEXT. If no real URL is provided, omit it or use the source domain only but never fabricate a fake specific article link.
 
 QUIZ & GAME DESIGN RULES:
-- If category is 'quiz', the 'quizData' field MUST be populated with AT LEAST 15+ LEVELS.
+- If category is 'quiz', the 'quizData' field MUST be populated with AT LEAST 20+ LEVELS.
 - Support 'multiple_choice' or 'crossword'.
-- NO SPOILERS IN QUESTION: If the question is "Guess the Player", DO NOT put the player's name in the 'question' field. Instead, write "من هو هذا اللاعب؟" (Who is this player?) or similar. The name should ONLY be in 'correctAnswer'.
-- NO SPOILERS IN IMAGES: If the user has to guess a player/team, DO NOT provide their clear image in imageUrl. Instead, use clueLogos for their transfer history (club logos) or rivals.
-- GUESS THE PLAYER: Use the clueLogos array for logos of the clubs they played for (last 5 clubs).
-- GUESS THE TEAM: Provide logos of the team's rivals or legendary trophies they won in clueLogos.
-- CROSSWORD: Create 10+ variations with a valid 5x5 or 7x7 grid using common Arabic football terms.
+- NEW GAME TYPE: 'Guess the Team from Logo'. Provide the official team logo URL in 'imageUrl' (blurred in UI) or use 'clueLogos' if it's a 'Guess the Player' game.
+- NO SPOILERS IN QUESTION: If the question is "Guess the Player" or "Guess the Team", DO NOT put the name in the 'question' field. Instead, write "من هو هذا اللاعب؟" or "ما هو هذا الفريق؟".
+- NO SPOILERS IN IMAGES: If guessing a player/team, the answer name must NEVER appear in the 'imageUrl'.
+- CROSSWORD: Create 15+ variations with a valid 5x5 or 7x7 grid using common Arabic football terms.
 - DIFFICULTY: Levels must be progressively harder.
 - BRANDING: DX7 Sport.
-- NUMERALS: ALWAYS use normal numerals (0-9).
-- LANGUAGE: FUSHA ARABIC.
-- Ensure the data is up-to-date for May 2026.
+- EXCLUSION: NEVER generate questions about Israeli teams, leagues, or players.
 
 Do not use markdown code blocks like \`\`\`json, just return the data matching the schema.`;
 

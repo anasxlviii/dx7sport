@@ -1,99 +1,73 @@
 import Link from 'next/link';
-import { QuizRenderer } from '@/components/QuizRenderer';
+import { db } from '@/lib/db/db';
+import { articles } from '@/lib/db/schema';
+import { desc, eq } from 'drizzle-orm';
 
-// PREDEFINED GAMES DATA
-const GAMES = [
+// FEATURED / STATIC GAMES
+const FEATURED_GAMES = [
   {
-    id: 'transfer-quiz-1',
-    title: 'خمن اللاعب من مسيرته',
-    description: 'تتبع محطات اللاعب التاريخية واكتشف من هو النجم المتخفي.',
-    category: 'Guess the Player',
-    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=800',
-    data: {
-      type: 'multiple_choice',
-      questions: [
-        {
-          question: 'لعب لـ: سبورتينج لشبونة -> مانشستر يونايتد -> ريال مدريد -> يوفنتوس',
-          options: ['ميسي', 'كريستيانو رونالدو', 'بنزيمة', 'مودريتش'],
-          correctAnswer: 'كريستيانو رونالدو',
-          hint: 'الهداف التاريخي لكرة القدم.',
-          imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg'
-        },
-        {
-          question: 'لعب لـ: باريس سان جيرمان -> ميلان -> برشلونة -> أياكس -> يوفنتوس',
-          options: ['رونالدينيو', 'إبراهيموفيتش', 'إيتو', 'تياغو سيلفا'],
-          correctAnswer: 'إبراهيموفيتش',
-          hint: 'الأسد السويدي.',
-          imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Zlatan_Ibrahimovi%C3%A7_June_2018.jpg'
-        },
-        {
-           question: 'لعب لـ: دورتموند -> بايرن ميونخ -> برشلونة',
-           options: ['ليفاندوفسكي', 'غوتزه', 'هاملز', 'ديمبيلي'],
-           correctAnswer: 'ليفاندوفسكي',
-           hint: 'ماكينة الأهداف البولندية.',
-           imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Robert_Lewandowski_2019.jpg'
-        }
-      ]
-    }
-  },
-  {
-    id: 'logo-quiz-1',
-    title: 'تحدي شعارات الأندية',
-    description: 'هل تستطيع التعرف على الفريق من نسخة مبسطة من شعاره؟',
+    id: 'logo-quiz-mega',
+    title: 'تحدي شعارات الأندية العالمية',
+    description: '20 مستوى من الإثارة! هل يمكنك التعرف على أقوى أندية العالم والعرب من شعاراتهم؟',
     category: 'Logo Quiz',
     image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=800',
     data: {
       type: 'multiple_choice',
       questions: [
-        {
-          question: 'النادي الملقب بـ "السيدة العجوز" في إيطاليا؟',
-          options: ['ميلان', 'يوفنتوس', 'إنتر ميلان', 'روما'],
-          correctAnswer: 'يوفنتوس',
-          hint: 'يرتدي القميص الأبيض والأسود.',
-          imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Juventus_FC_2017_logo.svg/1200px-Juventus_FC_2017_logo.svg.png'
-        },
-        {
-           question: 'نادي إنجليزي يلقب بـ "المدفعجية"؟',
-           options: ['ليفربول', 'مانشستر سيتي', 'أرسنال', 'تشيلسي'],
-           correctAnswer: 'أرسنال',
-           hint: 'يتواجد في شمال لندن.',
-           imageUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/1200px-Arsenal_FC.svg.png'
-        }
+        { question: 'ما هو هذا الفريق؟', options: ['ريال مدريد', 'برشلونة', 'أتلتيكو مدريد', 'ميلان'], correctAnswer: 'ريال مدريد', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/v298v11548784112.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['بايرن ميونخ', 'برشلونة', 'باريس سان جيرمان', 'مانشستر سيتي'], correctAnswer: 'برشلونة', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/0906801594917454.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['ليفربول', 'مانشستر يونايتد', 'أرسنال', 'تشيلسي'], correctAnswer: 'مانشستر يونايتد', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/ov8jcl1549109033.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['ليفربول', 'مانشستر سيتي', 'أرسنال', 'توتنهام'], correctAnswer: 'ليفربول', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/7f9vpk1548784277.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['أرسنال', 'تشيلسي', 'إيفرتون', 'أستون فيلا'], correctAnswer: 'أرسنال', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/dfh87n1549109312.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['مانشستر سيتي', 'نيوكاسل', 'ليستر سيتي', 'برايتون'], correctAnswer: 'مانشستر سيتي', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/v9st3y1549109156.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['بايرن ميونخ', 'دورتموند', 'لايبزيج', 'ليفركوزن'], correctAnswer: 'بايرن ميونخ', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/68fne61548784405.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['يوفنتوس', 'ميلان', 'إنتر ميلان', 'روما'], correctAnswer: 'يوفنتوس', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/78151594917631.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['إنتر ميلان', 'ميلان', 'يوفنتوس', 'نابولي'], correctAnswer: 'ميلان', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/9f38f11550143894.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['إنتر ميلان', 'ميلان', 'لاتسيو', 'أتالانتا'], correctAnswer: 'إنتر ميلان', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/p3h13y1617109550.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['باريس سان جيرمان', 'مارسيليا', 'ليون', 'موناكو'], correctAnswer: 'باريس سان جيرمان', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/77711594917551.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['الهلال', 'النصر', 'الاتحاد', 'الأهلي'], correctAnswer: 'الهلال', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/p0p6qj1553805728.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['النصر', 'الهلال', 'الشباب', 'الاتفاق'], correctAnswer: 'النصر', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/dfv3h91553805963.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['الأهلي المصري', 'الزمالك', 'بيراميدز', 'فيوتشر'], correctAnswer: 'الأهلي المصري', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/6eia2m1601053158.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['الرجاء الرياضي', 'الوداد الرياضي', 'الجيش الملكي', 'نهضة بركان'], correctAnswer: 'الرجاء الرياضي', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/vqupxu1465831005.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['الوداد الرياضي', 'الرجاء الرياضي', 'المغرب التطواني', 'اتحاد طنجة'], correctAnswer: 'الوداد الرياضي', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/quuuxy1465831093.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['دورتموند', 'بايرن ميونخ', 'مونشنغلادباخ', 'شالكه'], correctAnswer: 'دورتموند', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/7f8f0f1548784437.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['أتلتيكو مدريد', 'ريال مدريد', 'إشبيلية', 'فالنسيا'], correctAnswer: 'أتلتيكو مدريد', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/e7tptf1548784218.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['نابولي', 'يوفنتوس', 'روما', 'ميلان'], correctAnswer: 'نابولي', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/8i919k1661623838.png' },
+        { question: 'ما هو هذا الفريق؟', options: ['باير ليفركوزن', 'دورتموند', 'شتوتغارت', 'بايرن ميونخ'], correctAnswer: 'باير ليفركوزن', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/v6o6o71548784469.png' },
       ]
-    }
-  },
-  {
-    id: 'crossword-1',
-    title: 'الكلمات المتقاطعة الرياضية',
-    description: 'اختبر ثقافتك الكروية الشاملة في حل لغز الكلمات.',
-    category: 'Crossword',
-    image: 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&q=80&w=800',
-    data: {
-      type: 'crossword',
-      crossword: {
-        grid: [
-          ['م', 'و', 'د', 'ر', 'ي', 'ت', 'ش'],
-          [null, null, null, null, null, null, 'و'],
-          ['ب', 'ر', 'ش', 'ل', 'و', 'ن', 'ة'],
-          [null, null, null, null, null, null, 'ب'],
-          [null, null, null, null, null, null, 'ا'],
-        ],
-        clues: {
-          across: [
-            '1. فائز بالكرة الذهبية 2018 (مودريتش)',
-            '2. النادي الفائز بـ 6 بطولات في موسم واحد (برشلونة)'
-          ],
-          down: [
-            '1. الهداف التاريخي لكأس العالم (رونالدو - النسخة القديمة)',
-            '2. لقب منتخب إسبانيا (الماتادور)'
-          ]
-        }
-      }
     }
   }
 ];
 
-export default function EntertainmentPage() {
+export default async function EntertainmentPage() {
+  // Fetch dynamic quizzes from DB
+  const dynamicQuizzes = await db.query.articles.findMany({
+    where: eq(articles.category, 'quiz'),
+    orderBy: [desc(articles.createdAt)],
+    limit: 10
+  });
+
+  const allGames = [
+    ...FEATURED_GAMES,
+    ...dynamicQuizzes.map(q => {
+      let quizData = null;
+      try {
+        quizData = q.metadata ? JSON.parse(q.metadata).quizData : null;
+      } catch (e) {
+        console.error('Failed to parse quiz metadata', e);
+      }
+      
+      return {
+        id: q.id.toString(),
+        title: q.title,
+        description: q.excerpt || 'تحدي جديد من إنتاج الذكاء الاصطناعي لـ DX7 Sport',
+        category: 'AI Challenge',
+        image: q.featuredImage || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=800',
+        data: quizData
+      };
+    }).filter(q => q.data) // Only show if valid data exists
+  ];
+
   return (
     <div className="min-h-screen bg-black text-white" dir="rtl">
       {/* Hero Section */}
@@ -130,7 +104,7 @@ export default function EntertainmentPage() {
          </div>
 
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {GAMES.map((game) => (
+            {allGames.map((game) => (
               <div key={game.id} className="group relative flex flex-col bg-zinc-950 border border-zinc-900 overflow-hidden transition-all hover:border-lime/50">
                  {/* Card Image */}
                  <div className="aspect-[16/9] overflow-hidden relative">

@@ -353,13 +353,28 @@ export function QuizRenderer({ data }: Props) {
                 <img
                   src={currentQuestion.imageUrl}
                   alt="Quiz clue"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://r2.thesportsdb.com/images/media/team/badge/dqo6r91549878326.png';
+                  }}
                   className={`max-w-[280px] max-h-[280px] object-contain transition-all duration-1000 ${
-                    !selectedOption && (currentQuestion.question.toLowerCase().includes('guess') || currentQuestion.question.includes('خمن') || currentQuestion.question.includes('من هو'))
+                    !selectedOption && (
+                      currentQuestion.question.toLowerCase().includes('guess') || 
+                      currentQuestion.question.includes('خمن') || 
+                      currentQuestion.question.includes('من هو') || 
+                      currentQuestion.question.includes('ما هو') ||
+                      currentQuestion.question.includes('الفريق')
+                    )
                       ? 'blur-3xl opacity-20 scale-75'
                       : 'group-hover/img:scale-110 drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]'
                   }`}
                 />
-                {!selectedOption && (currentQuestion.question.toLowerCase().includes('guess') || currentQuestion.question.includes('خمن') || currentQuestion.question.includes('من هو')) && (
+                {!selectedOption && (
+                  currentQuestion.question.toLowerCase().includes('guess') || 
+                  currentQuestion.question.includes('خمن') || 
+                  currentQuestion.question.includes('من هو') || 
+                  currentQuestion.question.includes('ما هو') ||
+                  currentQuestion.question.includes('الفريق')
+                ) && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-6xl animate-pulse">❓</div>
                   </div>
