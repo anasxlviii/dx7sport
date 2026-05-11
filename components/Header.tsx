@@ -7,7 +7,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-20">
           <Link href="/" className="flex items-center group">
             <img 
-              src="/logo.png?v=3" 
+              src="/logo.png?v=4" 
               alt="DX7 SPORT" 
               className="h-12 w-auto object-contain transition-transform group-hover:scale-105"
             />

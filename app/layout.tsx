@@ -22,9 +22,9 @@ export const metadata: Metadata = {
   title: "DX7 SPORT | The Ultimate Football Intel",
   description: "Your autonomous source for researched football intelligence, tactical analysis, and breaking news.",
   icons: {
-    icon: '/favicon.png?v=3',
-    shortcut: '/favicon.png?v=3',
-    apple: '/favicon.png?v=3',
+    icon: '/favicon.png?v=4',
+    shortcut: '/favicon.png?v=4',
+    apple: '/favicon.png?v=4',
   },
   openGraph: {
     type: 'website',
@@ -95,7 +95,7 @@ export default async function RootLayout({
         <footer className="bg-zinc-950 border-t border-zinc-900 py-12">
           <div className="max-w-7xl mx-auto px-4 text-center">
             <div className="flex justify-center mb-6">
-              <img src="/logo.png?v=3" alt="DX7 SPORT" className="h-10 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity" />
+              <img src="/logo.png?v=4" alt="DX7 SPORT" className="h-10 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity" />
             </div>
             <p className="text-[10px] font-bold text-gray-600 uppercase tracking-[0.3em]">
               جميع الحقوق محفوظة © {new Date().getFullYear()} DX7 SPORT
