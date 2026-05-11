@@ -221,6 +221,11 @@ ${rawSearchContext ? rawSearchContext : 'No recent news found. Rely on verified 
 
     const parsed = result;
 
+    // Defensive type checks
+    if (typeof parsed.title !== 'string') parsed.title = String(parsed.title || '');
+    if (typeof parsed.content !== 'string') parsed.content = String(parsed.content || '');
+    if (typeof parsed.excerpt !== 'string') parsed.excerpt = String(parsed.excerpt || '');
+
     // Sanitize content
     if (parsed.content) {
       parsed.content = sanitizeArticleContent(parsed.content);
@@ -228,8 +233,15 @@ ${rawSearchContext ? rawSearchContext : 'No recent news found. Rely on verified 
     if (parsed.excerpt) {
       parsed.excerpt = parsed.excerpt.replace(/\\n/g, ' ').replace(/\n+/g, ' ').trim();
     }
+    // Sanitize factBox (Handle cases where AI returns an array instead of string)
     if (parsed.factBox) {
-      parsed.factBox = parsed.factBox.replace(/\\n/g, '\n').trim();
+      if (Array.isArray(parsed.factBox)) {
+        parsed.factBox = (parsed.factBox as string[]).map(item => `• ${item}`).join('\n');
+      } else if (typeof parsed.factBox === 'string') {
+        parsed.factBox = parsed.factBox.replace(/\\n/g, '\n').trim();
+      }
+    } else {
+      parsed.factBox = '';
     }
 
     return parsed;
