@@ -1,7 +1,6 @@
 import { extractTopic, type ExtractedTopic } from './extract-topic';
 import { scrapeUrl } from './scraper';
 import { generateArticle, type GeneratedArticle } from './generate-article';
-import { getBestImage } from './image-search';
 import { db } from '../db/db';
 import { articles, sources, media } from '../db/schema';
 import slugify from 'slugify';
