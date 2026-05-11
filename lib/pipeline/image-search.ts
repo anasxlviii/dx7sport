@@ -134,3 +134,12 @@ export async function selectBestImage(query: string, contextSummary?: string): P
 export async function getBestImage(query: string, contextSummary?: string): Promise<string | null> {
   return selectBestImage(query, contextSummary);
 }
+
+/**
+ * Returns a list of multiple high-quality images for a gallery.
+ */
+export async function getGalleryImages(query: string, count = 3): Promise<ImageResult[]> {
+  const results = await searchImages(query, count + 2);
+  // Basic filtering to avoid duplicates or logos if possible
+  return results.filter(r => !r.title.toLowerCase().includes('logo')).slice(0, count);
+}

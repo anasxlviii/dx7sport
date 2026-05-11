@@ -3,9 +3,10 @@ import { scrapeUrl } from './scraper';
 import { generateArticle, type GeneratedArticle } from './generate-article';
 import { getBestImage } from './image-search';
 import { db } from '../db/db';
-import { articles, sources } from '../db/schema';
+import { articles, sources, media } from '../db/schema';
 import slugify from 'slugify';
 import { sendTelegramAlert } from './telegram';
+import { getBestImage, getGalleryImages } from './image-search';
 
 export interface PipelineInput {
   postContent?: string;
@@ -112,15 +113,17 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
     // Step 3.5: Search for real images
     let featuredImage: string | null = input.imageBase64 || scrapedData?.images?.[0] || null;
-    if (!featuredImage) {
-      try {
-        // Build a good English image search query from the entities
-        const imageQuery = [...topic.entities.slice(0, 2), 'football'].join(' ');
+    let galleryResults: any[] = [];
+    
+    try {
+      const imageQuery = [...topic.entities.slice(0, 2), 'football'].join(' ');
+      if (!featuredImage) {
         featuredImage = await getBestImage(imageQuery, topic.summary);
-        console.log('[Pipeline] Image found:', featuredImage ? 'yes' : 'no');
-      } catch {
-        console.warn('[Pipeline] Image search failed, continuing without image');
       }
+      // Always try to fetch a gallery even if featured image exists
+      galleryResults = await getGalleryImages(imageQuery, 4);
+    } catch {
+      console.warn('[Pipeline] Image search failed');
     }
 
     // Step 4: Save to Database
@@ -153,6 +156,18 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
           }),
         })
         .returning();
+
+      // Save Gallery Images
+      if (galleryResults.length > 0) {
+        await db.insert(media).values(
+          galleryResults.map(img => ({
+            articleId: article.id,
+            type: 'image',
+            url: img.url,
+            alt: img.title
+          }))
+        );
+      }
 
       if (generated.sources && generated.sources.length > 0) {
         await db.insert(sources).values(
