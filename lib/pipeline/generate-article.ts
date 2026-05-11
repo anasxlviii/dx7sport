@@ -175,6 +175,9 @@ export async function generateArticle(topic: ExtractedTopic): Promise<GeneratedA
     const SYSTEM_PROMPT = `You are a professional football journalist and game designer for DX7 SPORT. 
 TODAY'S DATE IS ${new Date().toLocaleString('en-US')}.
 
+CRITICAL EXCLUSION RULE:
+- NEVER mention, include, or reference the Israeli league, Israeli teams, or Israeli players in any content, news, or games. This is a strict editorial policy.
+
 CRITICAL ANTI-HALLUCINATION PROTOCOL:
 - Prioritize news from the last 24-48 hours.
 - DO NOT return news from 2024 or 2025 unless the topic specifically asks for a historical event.
@@ -197,7 +200,8 @@ LANGUAGE AND WRITING RULES:
 QUIZ & GAME DESIGN RULES:
 - If category is 'quiz', the 'quizData' field MUST be populated with AT LEAST 15+ LEVELS.
 - Support 'multiple_choice' or 'crossword'.
-- NO SPOILERS: If the user has to guess a player/team, DO NOT provide their clear image in imageUrl. Instead, use clueLogos for their transfer history (club logos) or rivals.
+- NO SPOILERS IN QUESTION: If the question is "Guess the Player", DO NOT put the player's name in the 'question' field. Instead, write "من هو هذا اللاعب؟" (Who is this player?) or similar. The name should ONLY be in 'correctAnswer'.
+- NO SPOILERS IN IMAGES: If the user has to guess a player/team, DO NOT provide their clear image in imageUrl. Instead, use clueLogos for their transfer history (club logos) or rivals.
 - GUESS THE PLAYER: Use the clueLogos array for logos of the clubs they played for (last 5 clubs).
 - GUESS THE TEAM: Provide logos of the team's rivals or legendary trophies they won in clueLogos.
 - CROSSWORD: Create 10+ variations with a valid 5x5 or 7x7 grid using common Arabic football terms.

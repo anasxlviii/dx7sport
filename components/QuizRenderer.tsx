@@ -341,7 +341,7 @@ export function QuizRenderer({ data }: Props) {
                   key={idx}
                   className="aspect-square bg-black/40 border border-zinc-800 p-3 hover:border-lime/50 transition-all hover:scale-110 duration-500 group/logo shadow-xl"
                 >
-                  <img src={logo} alt="Club" className="w-full h-full object-contain grayscale group-hover/logo:grayscale-0 transition-all" />
+                  <img src={logo} alt="Club" className="w-full h-full object-contain transition-all" />
                 </div>
               ))}
             </div>
@@ -354,12 +354,12 @@ export function QuizRenderer({ data }: Props) {
                   src={currentQuestion.imageUrl}
                   alt="Quiz clue"
                   className={`max-w-[280px] max-h-[280px] object-contain transition-all duration-1000 ${
-                    !selectedOption && currentQuestion.question.toLowerCase().includes('guess')
+                    !selectedOption && (currentQuestion.question.toLowerCase().includes('guess') || currentQuestion.question.includes('خمن') || currentQuestion.question.includes('من هو'))
                       ? 'blur-3xl opacity-20 scale-75'
                       : 'group-hover/img:scale-110 drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]'
                   }`}
                 />
-                {!selectedOption && currentQuestion.question.toLowerCase().includes('guess') && (
+                {!selectedOption && (currentQuestion.question.toLowerCase().includes('guess') || currentQuestion.question.includes('خمن') || currentQuestion.question.includes('من هو')) && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-6xl animate-pulse">❓</div>
                   </div>

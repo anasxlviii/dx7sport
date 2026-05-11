@@ -38,22 +38,25 @@ export const TOP_LEAGUES = {
 
 // Official league badge URLs from TheSportsDB
 const LEAGUE_BADGES: Record<string, string> = {
-  '4328': 'https://www.thesportsdb.com/images/media/league/badge/7j96f21530187061.png', // Premier League
-  '4335': 'https://www.thesportsdb.com/images/media/league/badge/7on77v1546454076.png', // La Liga
-  '4332': 'https://www.thesportsdb.com/images/media/league/badge/0037zh1565038478.png', // Serie A
-  '4331': 'https://www.thesportsdb.com/images/media/league/badge/06v3961565038435.png', // Bundesliga
-  '4334': 'https://www.thesportsdb.com/images/media/league/badge/8o56251565038531.png', // Ligue 1
-  '4401': 'https://www.thesportsdb.com/images/media/league/badge/460s5a1532431620.png', // Champions League
-  '4480': 'https://www.thesportsdb.com/images/media/league/badge/s2v0ru1549984867.png', // Europa League
-  '4966': 'https://www.thesportsdb.com/images/media/league/badge/zy38001640870819.png', // Conference League
-  '4952': 'https://www.thesportsdb.com/images/media/league/badge/ijjb021682408399.png', // Saudi Pro League
-  '4346': 'https://www.thesportsdb.com/images/media/league/badge/o2nm6a1549984764.png', // MLS
+  '4328': 'https://r2.thesportsdb.com/images/media/league/badge/gasy9d1737743125.png', // Premier League
+  '4335': 'https://r2.thesportsdb.com/images/media/league/badge/ja4it51687628717.png', // La Liga
+  '4332': 'https://r2.thesportsdb.com/images/media/league/badge/67q3q21679951383.png', // Serie A
+  '4331': 'https://r2.thesportsdb.com/images/media/league/badge/teqh1b1679952008.png', // Bundesliga
+  '4334': 'https://r2.thesportsdb.com/images/media/league/badge/9f7z9d1742983155.png', // Ligue 1
+  '4401': 'https://r2.thesportsdb.com/images/media/league/badge/aofb771742983333.png', // Champions League
+  '4480': 'https://r2.thesportsdb.com/images/media/league/badge/facv1u1742998896.png', // Europa League
+  '4966': 'https://r2.thesportsdb.com/images/media/league/badge/54hu9p1664190019.png', // Conference League
+  '4952': 'https://r2.thesportsdb.com/images/media/league/badge/2bdq071615833896.png', // Saudi Pro League
+  '4346': 'https://r2.thesportsdb.com/images/media/league/badge/dqo6r91549878326.png', // MLS
 };
 
 /**
  * Fetches latest results for a specific league
  */
 export async function getLatestResults(leagueId = TOP_LEAGUES.PREMIER_LEAGUE): Promise<SportsEvent[]> {
+  // EXCLUSION: Never fetch for Israeli league
+  if (leagueId === '4344') return [];
+  
   try {
     const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventspastleague.php?id=${leagueId}`;
     const response = await axios.get(url);
@@ -140,11 +143,13 @@ export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
       });
     }
 
-    // Attach league badges
-    allEvents = allEvents.map((event) => ({
-      ...event,
-      strLeagueBadge: LEAGUE_BADGES[event.idLeague] || event.strLeagueBadge,
-    }));
+    // Attach league badges & FILTER Israeli league (Safety)
+    allEvents = allEvents
+      .filter((event) => event.idLeague !== '4344')
+      .map((event) => ({
+        ...event,
+        strLeagueBadge: LEAGUE_BADGES[event.idLeague] || event.strLeagueBadge,
+      }));
 
     // Deduplicate + sort: Live first, then Scheduled, then Finished (newest first)
     return allEvents

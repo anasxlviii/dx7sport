@@ -33,8 +33,15 @@ export async function runAutonomousGhost() {
       if (!matchEvents?.length) continue;
 
       const match = matchEvents[0];
-      const matchTopic = `نتيجة مباراة ${match.strEvent}: ${match.intHomeScore} - ${match.intAwayScore} في ${league.name}`;
+      
+      // EXCLUSION FILTER: Skip if match involves Israeli entities (Safety)
+      if (match.strEvent.toLowerCase().includes('israel') || 
+          match.strLeague?.toLowerCase().includes('israel')) {
+        continue;
+      }
 
+      const matchTopic = `نتيجة مباراة ${match.strEvent}: ${match.intHomeScore} - ${match.intAwayScore} في ${league.name}`;
+      
       const exists = await db.query.articles.findFirst({
         where: like(articles.title, `%${match.strEvent}%`),
       });
@@ -60,11 +67,21 @@ export async function runAutonomousGhost() {
   // 2. Trending news search queries
   for (const query of SEARCH_QUERIES) {
     try {
+      // EXCLUSION FILTER: Skip queries that might trigger Israeli content
+      if (query.toLowerCase().includes('israel')) continue;
+
       const searchContent = await duckduckgoSearch(query);
       if (!searchContent) {
         results.push({ type: 'search', name: query, success: false, message: 'لم يتم العثور على نتائج' });
         continue;
       }
+
+      // EXCLUSION FILTER: Skip results containing Israeli content
+      if (searchContent.toLowerCase().includes('israel')) {
+        results.push({ type: 'search', name: query, success: false, message: 'محتوى مستبعد (إسرائيلي)' });
+        continue;
+      }
+
       const pr = await runPipeline({ postContent: `Trending Football News:\n${searchContent}` });
       results.push({
         type: 'search',

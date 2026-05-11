@@ -52,6 +52,9 @@ export async function extractTopic(
     const SYSTEM_PROMPT = `You are a football content expert for DX7 SPORT. 
 TODAY'S DATE IS ${new Date().toLocaleString('en-US')}.
 
+CRITICAL EXCLUSION RULE:
+- NEVER extract, mention, or reference anything related to the Israeli league, Israeli teams, or Israeli players. If the input context contains such information, strictly ignore those parts or the entire topic.
+
 Analyze the given input (text, URL, or image) and extract structured information about the football news it represents.
 If an image is provided, identify the players, teams, or match event depicted and use it to define the topic.
 Always interpret "this season" or "next month" relative to the current date.`;
