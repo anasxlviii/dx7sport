@@ -134,6 +134,7 @@ export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
         TOP_LEAGUES.BUNDESLIGA,
         TOP_LEAGUES.LIGUE_1,
         TOP_LEAGUES.CHAMPIONS_LEAGUE,
+        TOP_LEAGUES.SAUDI_PRO_LEAGUE,
       ];
       const pastResults = await Promise.all(fallbackLeagues.map((id) => getLatestResults(id)));
       pastResults.forEach((events) => {

@@ -109,7 +109,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             {metadata.factBox && (
               <div className="bg-lime/5 border-r-4 border-lime p-8 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-20 h-20 bg-lime/5 rotate-45 -translate-x-10 -translate-y-10" />
-                <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-5">⚡ معلومات تكتيكية</h3>
+                <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-5">⚡ بعض الحقائق</h3>
                 <div className="space-y-2">
                   {metadata.factBox.replace(/\\n/g, '\n').split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
                     <p key={i} className="text-gray-200 font-medium leading-relaxed text-sm flex items-start gap-2">
@@ -149,24 +149,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </div>
 
           <div className="space-y-8">
-            {article.sources?.length > 0 && (
-              <div className="dxt-card p-8">
-                <h3 className="text-xs font-black text-lime uppercase tracking-[0.3em] mb-6">المصادر الموثوقة ({article.sources.length})</h3>
-                <div className="space-y-4">
-                  {article.sources.map((source: any) => (
-                    <div key={source.id} className="group pb-4 border-b border-border-subtle last:border-0">
-                      <a href={source.url} target="_blank" rel="noopener noreferrer"
-                        className="text-sm font-bold text-white group-hover:text-lime transition-colors line-clamp-2 leading-snug" dir="ltr">
-                        {source.title}
-                      </a>
-                      <span className={`text-[9px] mt-2 inline-block px-2 py-0.5 border font-bold uppercase ${source.credibility === 'high' ? 'border-lime text-lime' : 'border-gray-700 text-gray-500'}`}>
-                        {source.credibility === 'high' ? 'موثوق' : source.credibility}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Removed Sources section as requested */}
 
             {adSettings.ad_sidebar_enabled === 'true' && adSettings.ad_sidebar && (
               <div className="mb-8">
