@@ -55,6 +55,11 @@ TODAY'S DATE IS ${new Date().toLocaleString('en-US')}.
 CRITICAL EXCLUSION RULE:
 - NEVER extract, mention, or reference anything related to the Israeli league, Israeli teams, or Israeli players. 
 
+CRITICAL LANGUAGE RULE:
+- ALL text fields in your response (title, summary, keyQuestions) MUST be in SOPHISTICATED FUSHA ARABIC (Modern Standard Arabic).
+- searchQueries MUST be in ENGLISH to optimize for web searching.
+- Use Western numerals (0-9).
+
 Analyze the given input (text, URL, or image) and extract structured information about the football news it represents.
 IF THE INPUT IS A BARE URL: Use the information in the URL slug and your internal knowledge of CURRENT real-world events to identify the topic. 
 IF THE INPUT IS AN IMAGE: Identify the players, teams, or match event depicted and use it to define the topic.`;
