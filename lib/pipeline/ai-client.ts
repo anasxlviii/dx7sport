@@ -129,13 +129,25 @@ export async function executeWithAI<T>(
 
       try {
         console.log(`[AI Client] Using Gemini Free Tier (Key ...${key.slice(-4)})`);
+        
+        // RATE LIMIT PROTECTION: Mandatory 4-second delay for Gemini Free Tier (15 RPM)
+        // This ensures the "Ghost Reporter" stays within limits during backend runs.
+        await new Promise(resolve => setTimeout(resolve, 4000));
+
         const result = await client.models.generateContent({
-          model: 'gemini-2.0-flash',
+          model: 'gemini-1.5-flash', // Switched to 1.5-Flash for better stability on free tier
           contents: [{ role: 'user', parts: [{ text: `${options.systemPrompt}\n\n${options.userPrompt}` }] }],
           config: {
             responseMimeType: options.schema ? 'application/json' : 'text/plain',
             responseSchema: options.schema,
             temperature: options.temperature ?? 0.4,
+            // Lower safety thresholds to prevent blocks on sports news (injuries, rivalry, etc.)
+            safetySettings: [
+              { category: 'HATE_SPEECH', threshold: 'BLOCK_NONE' },
+              { category: 'HARASSMENT', threshold: 'BLOCK_NONE' },
+              { category: 'DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+              { category: 'SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            ] as any,
           },
         });
         delete keyCooldowns[key];

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 export interface ScrapedContent {
   text: string;
@@ -131,37 +132,52 @@ async function scrapeFacebookPost(url: string): Promise<ScrapedContent | null> {
 }
 
 function extractTextFromHTML(html: string): string {
-  // Remove script and style tags
-  let text = html.replace(/<script[^>]*>.*?<\/script>/gi, '')
-                 .replace(/<style[^>]*>.*?<\/style>/gi, '');
+  const $ = cheerio.load(html);
+  
+  // Remove non-content elements
+  $('script, style, iframe, nav, footer, header, .advertisement, .ads, .social-share').remove();
 
-  // Extract meta description
-  const metaMatch = text.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
-  if (metaMatch) {
-    return metaMatch[1];
+  // Try to find the main article body based on common selectors
+  const selectors = [
+    'article', 
+    '.article-body', 
+    '.entry-content', 
+    '.post-content', 
+    '.story-body',
+    'main'
+  ];
+
+  for (const selector of selectors) {
+    const content = $(selector).text().trim();
+    if (content.length > 300) {
+      return content.slice(0, 5000);
+    }
   }
 
-  // Extract from OpenGraph
-  const ogMatch = text.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
-  if (ogMatch) {
-    return ogMatch[1];
+  // Fallback: Just get all paragraph text
+  const paragraphs = $('p').map((i, el) => $(el).text()).get().join('\n');
+  if (paragraphs.length > 200) {
+    return paragraphs.slice(0, 5000);
   }
 
-  // Fallback: remove HTML tags
-  text = text.replace(/<[^>]+>/g, ' ');
-  text = text.replace(/\s+/g, ' ').trim();
-
-  return text.slice(0, 5000); // Limit length
+  // Last resort: Clean body text
+  return $('body').text().replace(/\s+/g, ' ').trim().slice(0, 5000);
 }
 
 function extractTitle(html: string): string {
+  const $ = cheerio.load(html);
+  
   // Try OpenGraph title
-  const ogMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["'][^>]*>/i);
-  if (ogMatch) return ogMatch[1];
+  const ogTitle = $('meta[property="og:title"]').attr('content');
+  if (ogTitle) return ogTitle;
 
   // Try regular title
-  const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-  if (titleMatch) return titleMatch[1];
+  const title = $('title').text();
+  if (title) return title;
+
+  // Try h1
+  const h1 = $('h1').first().text();
+  if (h1) return h1;
 
   return 'Untitled';
 }

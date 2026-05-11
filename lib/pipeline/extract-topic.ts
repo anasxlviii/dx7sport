@@ -53,11 +53,11 @@ export async function extractTopic(
 TODAY'S DATE IS ${new Date().toLocaleString('en-US')}.
 
 CRITICAL EXCLUSION RULE:
-- NEVER extract, mention, or reference anything related to the Israeli league, Israeli teams, or Israeli players. If the input context contains such information, strictly ignore those parts or the entire topic.
+- NEVER extract, mention, or reference anything related to the Israeli league, Israeli teams, or Israeli players. 
 
 Analyze the given input (text, URL, or image) and extract structured information about the football news it represents.
-If an image is provided, identify the players, teams, or match event depicted and use it to define the topic.
-Always interpret "this season" or "next month" relative to the current date.`;
+IF THE INPUT IS A BARE URL: Use the information in the URL slug and your internal knowledge of CURRENT real-world events to identify the topic. 
+IF THE INPUT IS AN IMAGE: Identify the players, teams, or match event depicted and use it to define the topic.`;
 
     const parts: any[] = [
       {
@@ -73,31 +73,14 @@ Always interpret "this season" or "next month" relative to the current date.`;
       parts.push({ inlineData: { data, mimeType } });
     }
 
-    const result = await executeWithGemini(async (client: GoogleGenAI) => {
-      const model = client.models;
-      const res = await model.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: [{ role: 'user', parts }],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: topicSchema,
-          temperature: 0.2,
-        },
-      });
-      return res;
+    const result = await executeWithAI<ExtractedTopic>({
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt: `Analyze this input and extract the football topic: ${postContent || 'Image provided.'}`,
+      schema: topicSchema,
+      temperature: 0.2,
     });
 
-    const responseText = result.text?.trim() || '{}';
-    const parsed = JSON.parse(responseText);
-
-    return {
-      category: parsed.category,
-      title: parsed.title,
-      entities: parsed.entities || [],
-      keyQuestions: parsed.keyQuestions || [],
-      searchQueries: parsed.searchQueries || [],
-      summary: parsed.summary || '',
-    };
+    return result;
   } catch (error) {
     console.error('Error extracting topic:', error);
     return {
