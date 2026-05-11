@@ -125,21 +125,21 @@ export async function executeWithAI<T>(
 
     while (attempts < maxAttempts) {
       const key = geminiKeys[currentKeyIndex];
-      const genAI = new GoogleGenAI({ apiKey: key });
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const client = new GoogleGenAI({ apiKey: key });
 
       try {
         console.log(`[AI Client] Using Gemini Free Tier (Key ...${key.slice(-4)})`);
-        const result = await model.generateContent({
+        const result = await client.models.generateContent({
+          model: 'gemini-2.0-flash',
           contents: [{ role: 'user', parts: [{ text: `${options.systemPrompt}\n\n${options.userPrompt}` }] }],
-          generationConfig: {
+          config: {
             responseMimeType: options.schema ? 'application/json' : 'text/plain',
             responseSchema: options.schema,
             temperature: options.temperature ?? 0.4,
           },
         });
         delete keyCooldowns[key];
-        const text = result.response.text();
+        const text = result.text || '{}';
         return (options.schema ? JSON.parse(text) : text) as T;
       } catch (error: any) {
         const status = error?.status ?? error?.httpStatus;
