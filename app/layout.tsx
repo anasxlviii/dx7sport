@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://dx7sport.com'),
   title: "DX7 SPORT | The Ultimate Football Intel",
   description: "Your autonomous source for researched football intelligence, tactical analysis, and breaking news.",
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'ar_EG',
@@ -89,9 +94,8 @@ export default async function RootLayout({
         
         <footer className="bg-zinc-950 border-t border-zinc-900 py-12">
           <div className="max-w-7xl mx-auto px-4 text-center">
-            <div className="flex justify-center gap-2 mb-6">
-              <span className="text-2xl font-black italic text-white">DX</span>
-              <span className="text-2xl font-black italic text-lime">7</span>
+            <div className="flex justify-center mb-6">
+              <img src="/logo.png" alt="DX7 SPORT" className="h-10 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity" />
             </div>
             <p className="text-[10px] font-bold text-gray-600 uppercase tracking-[0.3em]">
               جميع الحقوق محفوظة © {new Date().getFullYear()} DX7 SPORT

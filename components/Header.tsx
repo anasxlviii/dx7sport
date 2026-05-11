@@ -5,14 +5,12 @@ export default function Header() {
     <header className="bg-black border-b border-border-subtle sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex flex-col leading-none">
-              <div className="flex items-center gap-0.5">
-                <span className="text-3xl font-black italic tracking-tighter text-white group-hover:text-lime transition-colors">DX</span>
-                <span className="text-3xl font-black italic tracking-tighter text-lime group-hover:text-white transition-colors">7</span>
-              </div>
-              <span className="text-[10px] font-bold text-lime uppercase tracking-[0.3em] ml-0.5">SPORT</span>
-            </div>
+          <Link href="/" className="flex items-center group">
+            <img 
+              src="/logo.png" 
+              alt="DX7 SPORT" 
+              className="h-12 w-auto object-contain transition-transform group-hover:scale-105"
+            />
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
