@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { executeWithGemini } from './gemini-client';
+import { executeWithAI, executeWithGemini } from './ai-client';
 
 export interface ExtractedTopic {
   category: 'news' | 'comparison' | 'poll' | 'match_report' | 'transfer' | 'quiz';

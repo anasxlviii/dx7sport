@@ -42,9 +42,12 @@
 ### A. The "Ghost Reporter" (Autonomous Pipeline)
 - **Core logic**: `lib/pipeline/autonomous.ts`
 - **Article Generation**: `lib/pipeline/generate-article.ts`
-- **Function**: Automatically fetches trending topics, searches for live news via DuckDuckGo, and uses Gemini to write 1200-1500 word in-depth articles in Fusha Arabic with Western numerals.
-- **Coverage**: All Big 5 leagues (PL, La Liga, Serie A, Bundesliga, Ligue 1) + UCL + 5 diverse search queries (Arabic & English).
-- **AI Client**: `lib/pipeline/gemini-client.ts` — Smart key rotation with per-key cooldown tracking (1 min), exponential backoff (500ms → 8s), handles both 429 (quota) and 503 (overload) errors.
+- **AI Infrastructure**: `lib/pipeline/ai-client.ts` (Unified Client)
+  - **Multi-Provider Support**: Automatically switches between **Groq**, **OpenRouter**, and **Gemini** (free rotation).
+  - **High Throughput**: Integrated **Groq** (Llama 3.1 70B) for 10x faster generation and enterprise-grade rate limits.
+  - **Fallback**: Intelligent fallback to OpenRouter or Gemini rotation if the preferred provider fails.
+  - **Configuration**: Use `PREFERRED_AI_PROVIDER` and `GROQ_API_KEY` / `OPENROUTER_API_KEY` in `.env`.
+- **Function**: Automatically fetches trending topics, searches for live news via DuckDuckGo, and uses AI to write 1200-1500 word in-depth articles in Fusha Arabic with Western numerals.
 
 ### B. Scores Center
 - **Module**: `lib/pipeline/sportsdb.ts` & `components/ScoreSection.tsx`

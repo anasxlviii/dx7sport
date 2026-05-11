@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import type { ExtractedTopic } from './extract-topic';
 import { duckduckgoSearch } from './deep-search';
-import { executeWithGemini } from './gemini-client';
+import { executeWithAI } from './ai-client';
 
 /**
  * Sanitizes AI-generated article content:
@@ -223,21 +223,13 @@ Do not use markdown code blocks like \`\`\`json, just return the data matching t
 ${rawSearchContext ? rawSearchContext : 'No recent news found. Rely on verified knowledge.'}
 `;
 
-    const result = await executeWithGemini(async (client: GoogleGenAI) => {
-      const res = await client.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\n${prompt}` }] }],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: articleSchema,
-          temperature: 0.4,
-        },
-      });
-      return res;
+    const result = await executeWithAI<GeneratedArticle>({
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt: prompt,
+      schema: articleSchema,
     });
 
-    const responseText = result.text?.trim() || '{}';
-    const parsed = JSON.parse(responseText);
+    const parsed = result;
 
     // Sanitize content
     if (parsed.content) {
@@ -261,23 +253,11 @@ export async function regenerateArticle(
   originalContent: string,
   feedback: string
 ): Promise<string> {
-  const result = await executeWithGemini(async (client: GoogleGenAI) => {
-    const res = await client.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: `Revise this article based on feedback: ${feedback}\n\nContent: ${originalContent}`,
-            },
-          ],
-        },
-      ],
-    });
-    return res;
+  return executeWithAI<string>({
+    systemPrompt: 'Revise this article based on feedback.',
+    userPrompt: `Feedback: ${feedback}\n\nContent: ${originalContent}`,
+    temperature: 0.7,
   });
-  return result.text || '';
 }
 
 export async function optimizeForSEO(
@@ -288,22 +268,9 @@ export async function optimizeForSEO(
   metaDescription: string;
   keywords: string[];
 }> {
-  const result = await executeWithGemini(async (client: GoogleGenAI) => {
-    const res = await client.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: `Optimize this for SEO: ${content.slice(0, 2000)}` }],
-        },
-      ],
-    });
-    return res;
+  return executeWithAI<{ title: string; metaDescription: string; keywords: string[] }>({
+    systemPrompt: 'Optimize this football article for SEO. Return JSON.',
+    userPrompt: `Topic: ${topic}\n\nContent: ${content.slice(0, 2000)}`,
+    schema: { type: 'object' }, // Simple schema hint for providers
   });
-  const responseText = result.text?.trim() || '{}';
-  const cleanJson = responseText
-    .replace(/```json\n?/g, '')
-    .replace(/```\n?/g, '')
-    .trim();
-  return JSON.parse(cleanJson);
 }

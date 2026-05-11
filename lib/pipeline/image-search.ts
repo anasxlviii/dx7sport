@@ -2,7 +2,7 @@
  * DuckDuckGo Image Search
  * Uses DDG's unofficial image search API to pull real web images - no API key needed.
  */
-import { executeWithGemini } from './gemini-client';
+import { executeWithAI } from './ai-client';
 
 export interface ImageResult {
   url: string;
@@ -104,28 +104,21 @@ export async function selectBestImage(query: string, contextSummary?: string): P
   if (results.length === 1) return results[0].url;
 
   try {
-    const result = await executeWithGemini(async (client) => {
-      const res = await client.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: [{
-          role: 'user',
-          parts: [{ text: `You are a professional Photo Editor for a sports news site. 
-            ARTICLE CONTEXT: ${contextSummary || query}
-            
-            Below are 7 image search results for the query: "${query}".
-            Pick the ONE image that is most likely to be a high-quality, professional photograph directly relevant to the article context. 
-            Avoid generic logos, unrelated thumbnails, or low-quality graphics.
-            
-            RESULTS:
-            ${results.map((r, i) => `[ID: ${i}] TITLE: ${r.title} | SOURCE: ${r.source}`).join('\n')}
-            
-            Return ONLY the ID number of the best image.` }]
-        }]
-      });
-      return res;
+    const result = await executeWithAI<string>({
+      systemPrompt: 'You are a professional Photo Editor for a sports news site.',
+      userPrompt: `ARTICLE CONTEXT: ${contextSummary || query}
+        
+        Below are 7 image search results for the query: "${query}".
+        Pick the ONE image that is most likely to be a high-quality, professional photograph directly relevant to the article context. 
+        Avoid generic logos, unrelated thumbnails, or low-quality graphics.
+        
+        RESULTS:
+        ${results.map((r, i) => `[ID: ${i}] TITLE: ${r.title} | SOURCE: ${r.source}`).join('\n')}
+        
+        Return ONLY the ID number of the best image.`,
     });
 
-    const bestId = parseInt(result.text?.trim() || '0');
+    const bestId = parseInt(result || '0');
     const selected = results[bestId] || results[0];
     return selected.url;
   } catch (error) {
