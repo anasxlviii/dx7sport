@@ -81,9 +81,13 @@ export async function executeWithAI<T>(
   if ((preferredProvider === 'groq' || !geminiKeys.length) && groq) {
     try {
       console.log('[AI Client] Using Groq (Llama 3.1 70B)');
+      const systemWithSchema = options.schema 
+        ? `${options.systemPrompt}\n\nIMPORTANT: You must return a JSON object that strictly follows this schema:\n${JSON.stringify(options.schema, null, 2)}`
+        : options.systemPrompt;
+
       const completion = await groq.chat.completions.create({
         messages: [
-          { role: 'system', content: options.systemPrompt },
+          { role: 'system', content: systemWithSchema },
           { role: 'user', content: options.userPrompt }
         ],
         model: 'llama-3.3-70b-versatile',
@@ -101,9 +105,13 @@ export async function executeWithAI<T>(
   if (openRouter && (preferredProvider === 'openrouter' || preferredProvider === 'groq')) {
     try {
       console.log('[AI Client] Using OpenRouter (Gemini 2.0 Flash / Pro)');
+      const systemWithSchema = options.schema 
+        ? `${options.systemPrompt}\n\nIMPORTANT: You must return a JSON object that strictly follows this schema:\n${JSON.stringify(options.schema, null, 2)}`
+        : options.systemPrompt;
+
       const completion = await openRouter.chat.completions.create({
         messages: [
-          { role: 'system', content: options.systemPrompt },
+          { role: 'system', content: systemWithSchema },
           { role: 'user', content: options.userPrompt }
         ],
         model: 'google/gemini-2.0-flash-001', // Or 'meta-llama/llama-3.1-405b-instruct'

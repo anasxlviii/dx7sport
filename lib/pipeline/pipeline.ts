@@ -136,24 +136,26 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       let shortSlug = slug.slice(0, 50);
       let uniqueSlug = `${shortSlug}-${Date.now().toString().slice(-4)}`;
 
+      const articleData = {
+        title: finalTitle,
+        slug: uniqueSlug,
+        content: generated.content || 'Content generation failed. Please check the logs.',
+        excerpt: generated.excerpt || (generated.content ? generated.content.slice(0, 150) + '...' : 'No summary available.'),
+        status: 'draft' as const,
+        category: topic.category,
+        sourcePostUrl: input.postUrl,
+        sourcePostText: actualContent,
+        featuredImage: featuredImage,
+        metadata: JSON.stringify({
+          factBox: generated.factBox,
+          sections: generated.sections,
+          quizData: generated.quizData,
+        }),
+      };
+
       const [article] = await db
         .insert(articles)
-        .values({
-          title: finalTitle,
-          slug: uniqueSlug,
-          content: generated.content,
-          excerpt: generated.excerpt,
-          status: 'draft',
-          category: topic.category,
-          sourcePostUrl: input.postUrl,
-          sourcePostText: actualContent,
-          featuredImage: featuredImage,
-          metadata: JSON.stringify({
-            factBox: generated.factBox,
-            sections: generated.sections,
-            quizData: generated.quizData,
-          }),
-        })
+        .values(articleData)
         .returning();
 
       // Save Gallery Images
