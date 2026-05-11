@@ -128,7 +128,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     steps[3].startedAt = new Date();
 
     try {
-      let slug = slugify(generated.title, { lower: true, strict: true });
+      const finalTitle = generated.title || topic.title || 'Untitled Article';
+      let slug = slugify(finalTitle, { lower: true, strict: true });
       // Truncate slug to 50 chars to keep URLs short and safe for Facebook/Social crawlers
       let shortSlug = slug.slice(0, 50);
       let uniqueSlug = `${shortSlug}-${Date.now().toString().slice(-4)}`;
@@ -136,7 +137,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       const [article] = await db
         .insert(articles)
         .values({
-          title: generated.title,
+          title: finalTitle,
           slug: uniqueSlug,
           content: generated.content,
           excerpt: generated.excerpt,
