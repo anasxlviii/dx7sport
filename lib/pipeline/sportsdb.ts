@@ -194,6 +194,48 @@ export async function getUpcomingMatches(): Promise<SportsEvent[]> {
 }
 
 /**
+ * Searches for a team ID by name
+ */
+export async function searchTeam(teamName: string): Promise<any> {
+  try {
+    const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/searchteams.php?t=${encodeURIComponent(teamName)}`;
+    const response = await axios.get(url);
+    return response.data.teams ? response.data.teams[0] : null;
+  } catch (error) {
+    console.error(`[SportsDB] Team search failed for ${teamName}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Fetches last 5 results for a specific team
+ */
+export async function getTeamLastResults(teamId: string): Promise<SportsEvent[]> {
+  try {
+    const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventslast.php?id=${teamId}`;
+    const response = await axios.get(url);
+    return response.data.results || [];
+  } catch (error) {
+    console.error(`[SportsDB] Team results fetch failed for ${teamId}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetches next 5 fixtures for a specific team
+ */
+export async function getTeamNextFixtures(teamId: string): Promise<SportsEvent[]> {
+  try {
+    const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsnext.php?id=${teamId}`;
+    const response = await axios.get(url);
+    return response.data.events || [];
+  } catch (error) {
+    console.error(`[SportsDB] Team fixtures fetch failed for ${teamId}:`, error);
+    return [];
+  }
+}
+
+/**
  * Fetches detailed info for a specific event
  */
 export async function getEventDetails(idEvent: string): Promise<any> {

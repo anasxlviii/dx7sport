@@ -100,7 +100,31 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
     let generated: GeneratedArticle;
     try {
-      generated = await generateArticle(topic);
+      // 3.1: Enrich with SportsDB data
+      let factCheckedData = "";
+      if (topic.entities && topic.entities.length > 0) {
+        const { searchTeam, getTeamLastResults, getTeamNextFixtures } = await import('./sportsdb');
+        const teamDataResults = await Promise.all(topic.entities.slice(0, 3).map(async (entity) => {
+          const team = await searchTeam(entity);
+          if (team) {
+            const [last, next] = await Promise.all([
+              getTeamLastResults(team.idTeam),
+              getTeamNextFixtures(team.idTeam)
+            ]);
+            return `
+TEAM: ${team.strTeam}
+RECENT RESULTS:
+${last.map(r => `- ${r.strEvent}: ${r.intHomeScore}-${r.intAwayScore} (${r.strTimestamp})`).join('\n')}
+UPCOMING FIXTURES:
+${next.map(n => `- ${n.strEvent} (${n.strTimestamp})`).join('\n')}
+`;
+          }
+          return null;
+        }));
+        factCheckedData = teamDataResults.filter(Boolean).join('\n---\n');
+      }
+
+      generated = await generateArticle(topic, factCheckedData);
       steps[2].status = 'completed';
       steps[2].result = { title: generated.title };
       steps[2].completedAt = new Date();

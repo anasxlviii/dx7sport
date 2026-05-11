@@ -170,7 +170,10 @@ const articleSchema: Schema = {
   required: ['title', 'excerpt', 'content', 'sections', 'factBox', 'sources'],
 };
 
-export async function generateArticle(topic: ExtractedTopic): Promise<GeneratedArticle> {
+export async function generateArticle(
+  topic: ExtractedTopic,
+  factCheckedData?: string
+): Promise<GeneratedArticle> {
   try {
     // 1. Perform DuckDuckGo Search for live context
     const searchQuery =
@@ -190,9 +193,19 @@ CRITICAL LANGUAGE & STYLING RULES:
 
 CRITICAL FACTUAL GROUNDING:
 - TODAY'S DATE IS ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}.
-- USE ONLY SEARCH CONTEXT: For current news, squad lists, and scores, ONLY use the provided "LIVE SEARCH CONTEXT". 
-- DO NOT hallucinate old facts or use internal training data for recent events. If the search context says Rashford scored 10 goals, do not say 15 based on your memory.
-- If the search context is empty, state that the latest tactical details are being verified.
+- OFFICIAL VERIFIED DATA (TheSportsDB): 
+  ${factCheckedData || 'No specific team data found. Use web context carefully.'}
+
+- USE ONLY SEARCH CONTEXT: For current news, squad lists, and scores, ONLY use the provided "LIVE SEARCH CONTEXT" and "OFFICIAL VERIFIED DATA". 
+- DO NOT hallucinate old facts or use internal training data for recent events. 
+- If you mention future fixtures or past scores, they MUST match the "OFFICIAL VERIFIED DATA" exactly.
+
+VERBOSITY & STRUCTURE:
+- This is a PREMIUM MAGAZINE. Articles must be LONG, DETAILED, and VERBOSE (Aim for 1000+ words in total).
+- YOU MUST produce AT LEAST 5-6 detailed sections (H2 headers).
+- Each section should be 3-4 paragraphs long.
+- Use deep tactical analysis for every section. Do not just summarize news.
+- Use bold lead-ins for EVERY paragraph to maintain the DX7 UI styling.
 
 CRITICAL PERSONA & TONE:
 - You are NOT an AI assistant. You are a SEASONED JOURNALIST who has lived and breathed football for 40 years.

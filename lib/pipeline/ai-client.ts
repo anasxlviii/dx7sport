@@ -91,6 +91,7 @@ export async function executeWithAI<T>(
           { role: 'user', content: options.userPrompt }
         ],
         model: 'llama-3.3-70b-versatile',
+        max_tokens: 4096,
         temperature: options.temperature ?? 0.4,
         response_format: options.schema ? { type: 'json_object' } : undefined,
       });
@@ -115,6 +116,7 @@ export async function executeWithAI<T>(
           { role: 'user', content: options.userPrompt }
         ],
         model: 'google/gemini-2.0-flash-001', // Or 'meta-llama/llama-3.1-405b-instruct'
+        max_tokens: 8192,
         temperature: options.temperature ?? 0.4,
         response_format: options.schema ? { type: 'json_object' } : undefined,
       });
@@ -149,6 +151,7 @@ export async function executeWithAI<T>(
             responseMimeType: options.schema ? 'application/json' : 'text/plain',
             responseSchema: options.schema,
             temperature: options.temperature ?? 0.4,
+            maxOutputTokens: 8192,
             // Lower safety thresholds to prevent blocks on sports news (injuries, rivalry, etc.)
             safetySettings: [
               { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
