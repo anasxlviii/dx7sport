@@ -124,7 +124,7 @@ ${next.map(n => `- ${n.strEvent} (${n.strTimestamp})`).join('\n')}
         factCheckedData = teamDataResults.filter(Boolean).join('\n---\n');
       }
 
-      generated = await generateArticle(topic, factCheckedData);
+      generated = await generateArticle(topic, factCheckedData, actualContent);
       steps[2].status = 'completed';
       steps[2].result = { title: generated.title };
       steps[2].completedAt = new Date();

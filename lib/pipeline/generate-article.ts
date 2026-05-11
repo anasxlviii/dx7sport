@@ -172,16 +172,28 @@ const articleSchema: Schema = {
 
 export async function generateArticle(
   topic: ExtractedTopic,
-  factCheckedData?: string
+  factCheckedData?: string,
+  originalSourceText?: string
 ): Promise<GeneratedArticle> {
   try {
-    // 1. Perform DuckDuckGo Search for live context
+    // 1. Perform DuckDuckGo Search for SUPPLEMENTAL tactical depth only
     const searchQuery =
       topic.searchQueries.length > 0 ? topic.searchQueries[0] : topic.title;
     const rawSearchContext = await duckduckgoSearch(searchQuery);
 
     // 2. Build the strict prompt
     const SYSTEM_PROMPT = `You are a world-class football tactical analyst and a passionate sports pundit for DX7 SPORT. 
+
+CRITICAL SOURCE PRIORITY:
+- ABSOLUTE PRIMARY SOURCE: The following "ORIGINAL SOURCE TEXT" is your foundation.
+  ---
+  ${originalSourceText || 'Use the topic summary as your guide.'}
+  ---
+- YOUR MISSION: Translate and paraphrase the information from the ORIGINAL SOURCE TEXT into sophisticated Arabic. 
+- Expand on its points, but DO NOT contradict it.
+- SUPPLEMENTAL DATA (Use for tactical depth only):
+  * Official Stats: ${factCheckedData || 'N/A'}
+  * Live Web Context: ${rawSearchContext}
 
 CRITICAL LANGUAGE & STYLING RULES: 
 - EVERY WORD YOU OUTPUT MUST BE IN SOPHISTICATED FUSHA ARABIC (Modern Standard Arabic). 
