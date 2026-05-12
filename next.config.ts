@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ['postgres'],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 

@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
           .limit(limit)
           .offset(offset);
 
-        const articleIds = allArticles.map(a => a.id);
+        const articleIds = allArticles.map((a: any) => a.id);
         const allSources = articleIds.length > 0
           ? await db.select().from(sources).where(
               articleIds.length === 1
