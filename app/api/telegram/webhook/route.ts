@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { executeWithGemini } from '@/lib/pipeline/gemini-client';
 import { runPipeline } from '@/lib/pipeline/pipeline';
 
+export const runtime = 'edge';
+
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 

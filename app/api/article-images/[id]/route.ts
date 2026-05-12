@@ -9,6 +9,8 @@ import { media, articles } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { searchImages } from '@/lib/pipeline/image-search';
 
+export const runtime = 'edge';
+
 export const dynamic = 'force-dynamic';
 
 // GET — list all images for an article

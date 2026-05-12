@@ -3,6 +3,8 @@ import { db } from '@/lib/db/db';
 import { articles } from '@/lib/db/schema';
 import slugify from 'slugify';
 
+export const runtime = 'edge';
+
 export async function GET() {
   const quizData = [
     {

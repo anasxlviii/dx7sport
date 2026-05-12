@@ -3,6 +3,8 @@ import { db } from '@/lib/db/db';
 import { articles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
+export const runtime = 'edge';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(

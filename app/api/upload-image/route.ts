@@ -2,6 +2,8 @@
 // Accepts a file upload and returns the Vercel Blob URL (or base64 fallback)
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

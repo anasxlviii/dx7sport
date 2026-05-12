@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { QuizRenderer } from '@/components/QuizRenderer';
 import { notFound } from 'next/navigation';
 
+export const runtime = 'edge';
+
 const STATIC_GAMES = [
   {
     id: 'logo-quiz-mega',

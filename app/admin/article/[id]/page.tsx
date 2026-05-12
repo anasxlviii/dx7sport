@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { ArticleRenderer } from '@/components/ArticleRenderer';
 
+export const runtime = 'edge';
+
 interface MediaImage { id: number; url: string; alt: string; }
 interface Article {
   id: number; title: string; slug: string; content: string; excerpt: string;
