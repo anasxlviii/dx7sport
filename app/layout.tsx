@@ -7,7 +7,10 @@ import { settings } from '@/lib/db/schema';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
 import NextTopLoader from 'nextjs-toploader';
 
+export const runtime = 'edge';
+
 const cairo = Cairo({
+
   variable: "--font-cairo",
   subsets: ["arabic", "latin"],
 });

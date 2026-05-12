@@ -15,11 +15,16 @@ if (!connectionString) {
 
 const pooledConnectionString = connectionString ? connectionString.replace(':5432', ':6543') : '';
 
-const client = postgres(pooledConnectionString || '', { 
-  max: 10, // Increased for high traffic
-  idle_timeout: 20,
-  connect_timeout: 10,
-  prepare: false, // Mandatory for Supabase transaction mode pooler
-});
+// Create client ONLY if we have a connection string
+const client = pooledConnectionString 
+  ? postgres(pooledConnectionString, { 
+      max: 10,
+      idle_timeout: 20,
+      connect_timeout: 10,
+      prepare: false, 
+    })
+  : null;
 
-export const db = drizzle(client, { schema });
+// @ts-ignore - db might be used with a null client during build analysis, but that's fine as long as we don't query
+export const db = client ? drizzle(client, { schema }) : ({} as any);
+

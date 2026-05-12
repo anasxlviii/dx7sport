@@ -40,8 +40,9 @@ const STATIC_GAMES = [
   }
 ];
 
-export default async function GamePage({ params }: { params: { id: string } }) {
+export default async function GamePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
   
   let game = STATIC_GAMES.find(g => g.id === id);
 
