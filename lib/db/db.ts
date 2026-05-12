@@ -25,6 +25,6 @@ const client = pooledConnectionString
     })
   : null;
 
-// @ts-ignore - db might be used with a null client during build analysis, but that's fine as long as we don't query
-export const db = client ? drizzle(client, { schema }) : ({} as any);
+// Create drizzle instance only if client is valid
+export const db = client ? drizzle(client, { schema }) : null;
 

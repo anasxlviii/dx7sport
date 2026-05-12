@@ -8,9 +8,11 @@ import { ArticleRenderer } from '@/components/ArticleRenderer';
 import { AdComponent } from '@/components/AdComponent';
 
 
-export const revalidate = 60; // Revalidate every 60 seconds
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 async function getArticle(slug: string, retries = 5) {
+  if (!db) return null;
   for (let i = 0; i < retries; i++) {
     try {
       const [article] = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1);
@@ -29,6 +31,7 @@ async function getArticle(slug: string, retries = 5) {
 }
 
 async function getAdSettings(retries = 5): Promise<Record<string, string>> {
+  if (!db) return {};
   for (let i = 0; i < retries; i++) {
     try {
       const rows = await db.select().from(settings);

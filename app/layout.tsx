@@ -7,6 +7,9 @@ import { settings } from '@/lib/db/schema';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
 import NextTopLoader from 'nextjs-toploader';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 
 const cairo = Cairo({
@@ -42,6 +45,10 @@ export const metadata: Metadata = {
 };
 
 async function getGlobalScripts(retries = 5) {
+  if (!db) {
+    console.warn('[Layout] Database not initialized, skipping scripts');
+    return [];
+  }
   for (let i = 0; i < retries; i++) {
     try {
       const rows = await db.select().from(settings);

@@ -10,9 +10,11 @@ import { getTopLeaguesScores } from '@/lib/pipeline/sportsdb';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
 
 
-export const revalidate = 300; // Revalidate every 5 minutes
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 async function getData(retries = 5) {
+  if (!db) return { allArticles: [], settingsMap: {}, scores: [] };
   for (let i = 0; i < retries; i++) {
     try {
       const [allArticles, allSettings, scores] = await Promise.all([

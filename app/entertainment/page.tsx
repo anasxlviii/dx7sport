@@ -3,6 +3,9 @@ import { db } from '@/lib/db/db';
 import { articles } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 
 
@@ -43,6 +46,7 @@ const FEATURED_GAMES = [
 ];
 
 export default async function EntertainmentPage() {
+  if (!db) return <div className="p-20 text-center">Loading...</div>;
   // Fetch dynamic quizzes from DB
   const dynamicQuizzes = await db.query.articles.findMany({
     where: eq(articles.category, 'quiz'),

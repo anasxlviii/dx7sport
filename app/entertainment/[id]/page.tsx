@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { QuizRenderer } from '@/components/QuizRenderer';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 const STATIC_GAMES = [
   {
@@ -45,7 +48,7 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
   
   let game = STATIC_GAMES.find(g => g.id === id);
 
-  if (!game && !isNaN(Number(id))) {
+  if (!game && !isNaN(Number(id)) && db) {
     const dbArticle = await db.query.articles.findFirst({
       where: eq(articles.id, Number(id))
     });

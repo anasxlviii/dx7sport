@@ -1,10 +1,8 @@
 name = "dx7sport"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
 
-[site]
-bucket = ".vercel/output/static"
-
-[build]
-command = "npm run build && npx @cloudflare/next-on-pages"
-path = ".vercel/output/functions"
+[vars]
+# DATABASE_URL should be set in the Cloudflare Dashboard
+# GOOGLE_AI_API_KEY should be set in the Cloudflare Dashboard

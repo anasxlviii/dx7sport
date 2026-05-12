@@ -6,7 +6,8 @@ import { eq, desc, and } from 'drizzle-orm';
 import { ArticleCard } from '@/components/ArticleCard';
 
 
-export const revalidate = 60; // Revalidate every minute
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const CATEGORIES = {
   news: 'أخبار عالمية',
@@ -18,6 +19,7 @@ const CATEGORIES = {
 };
 
 async function getArticlesByCategory(category: string, retries = 5) {
+  if (!db) return [];
   for (let i = 0; i < retries; i++) {
     try {
       return await db
