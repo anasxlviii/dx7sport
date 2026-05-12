@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PipelineLogModal from '@/components/PipelineLogModal';
+import ConfirmModal from '@/components/ConfirmModal';
+import { Trash2, EyeOff, Share2, CheckSquare, Square } from 'lucide-react';
 
 interface Article {
   id: number;
@@ -24,33 +26,56 @@ export default function AdminDashboard() {
   const [runningGhost, setRunningGhost] = useState(false);
   const [pipelineResults, setPipelineResults] = useState<any[]>([]);
   const [showLogModal, setShowLogModal] = useState(false);
+  
+  // Selection & Bulk State
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
+  
+  // Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    isDestructive?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   async function triggerGhostReporter() {
-    if (!confirm('Are you sure you want to trigger the Ghost Reporter? It will fetch the latest news and generate articles automatically.')) return;
-    
-    setRunningGhost(true);
-    setPipelineResults([]);
-    
-    try {
-      const response = await fetch('/api/pipeline?secret=dx7-ghost-2024');
-      const data = await response.json();
-      
-      if (data.status === 'success' || data.results) {
-        setPipelineResults(data.results || []);
-        setShowLogModal(true);
-        fetchArticles();
-      } else {
-        alert('Ghost Reporter encountered an issue: ' + (data.error || 'Unknown error'));
+    setConfirmModal({
+      isOpen: true,
+      title: 'تشغيل المراسل الشبح',
+      message: 'هل أنت متأكد من رغبتك في تشغيل المراسل الشبح؟ سيقوم بالبحث عن آخر الأخبار وتوليد مقالات تلقائياً.',
+      isDestructive: false,
+      onConfirm: async () => {
+        setRunningGhost(true);
+        setPipelineResults([]);
+        try {
+          const response = await fetch('/api/pipeline?secret=dx7-ghost-2024');
+          const data = await response.json();
+          if (data.status === 'success' || data.results) {
+            setPipelineResults(data.results || []);
+            setShowLogModal(true);
+            fetchArticles();
+          } else {
+            alert('Ghost Reporter encountered an issue: ' + (data.error || 'Unknown error'));
+          }
+        } catch (error) {
+          alert('Failed to trigger Ghost Reporter. Please check the logs.');
+        } finally {
+          setRunningGhost(false);
+        }
       }
-    } catch (error) {
-      alert('Failed to trigger Ghost Reporter. Please check the logs.');
-    } finally {
-      setRunningGhost(false);
-    }
+    });
   }
 
   useEffect(() => {
     fetchArticles();
+    setSelectedIds([]); // Reset selection on filter/search change
   }, [filter, search]);
 
   async function fetchArticles() {
@@ -71,21 +96,78 @@ export default function AdminDashboard() {
   }
 
   async function deleteArticle(id: number) {
-    if (!confirm('Are you sure you want to delete this article?')) return;
+    setConfirmModal({
+      isOpen: true,
+      title: 'حذف المقال',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا المقال نهائياً؟ لا يمكن التراجع عن هذه العملية.',
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          await fetch(`/api/articles/${id}`, { method: 'DELETE' });
+          setArticles(articles.filter(a => a.id !== id));
+          setSelectedIds(prev => prev.filter(sid => sid !== id));
+        } catch (error) {
+          console.error('Failed to delete article:', error);
+        }
+      }
+    });
+  }
 
+  async function bulkDelete() {
+    if (selectedIds.length === 0) return;
+    setConfirmModal({
+      isOpen: true,
+      title: 'حذف جماعي',
+      message: `هل أنت متأكد من رغبتك في حذف ${selectedIds.length} مقال؟ سيتم مسحهم نهائياً من قاعدة البيانات.`,
+      isDestructive: true,
+      onConfirm: async () => {
+        setIsBulkActionLoading(true);
+        try {
+          await Promise.all(selectedIds.map(id => fetch(`/api/articles/${id}`, { method: 'DELETE' })));
+          setArticles(articles.filter(a => !selectedIds.includes(a.id)));
+          setSelectedIds([]);
+        } catch (error) {
+          console.error('Bulk delete failed:', error);
+        } finally {
+          setIsBulkActionLoading(false);
+        }
+      }
+    });
+  }
+
+  async function bulkUpdateStatus(newStatus: 'published' | 'draft') {
+    if (selectedIds.length === 0) return;
+    setIsBulkActionLoading(true);
     try {
-      await fetch(`/api/articles/${id}`, { method: 'DELETE' });
-      setArticles(articles.filter(a => a.id !== id));
+      await Promise.all(selectedIds.map(id => 
+        fetch(`/api/articles/${id}`, { 
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        })
+      ));
+      fetchArticles();
+      setSelectedIds([]);
     } catch (error) {
-      console.error('Failed to delete article:', error);
+      console.error('Bulk update failed:', error);
+    } finally {
+      setIsBulkActionLoading(false);
     }
   }
 
-  const statusColors = {
-    draft: 'bg-gray-100 text-gray-800',
-    published: 'bg-green-100 text-green-800',
-    archived: 'bg-red-100 text-red-800',
-  };
+  function toggleSelection(id: number) {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.length === articles.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(articles.map(a => a.id));
+    }
+  }
 
   const categoryLabels = {
     news: 'أخبار',
@@ -104,12 +186,12 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" dir="rtl">
       {/* Header */}
-      <div className="flex justify-between items-end mb-12">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
         <div>
           <h2 className="text-xs font-bold text-lime uppercase tracking-[0.3em] mb-2">مركز القيادة</h2>
           <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase">لوحة التحكم</h1>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <Link
             href="/admin/entertainment"
             className="bg-zinc-900 text-white border border-zinc-800 px-6 py-2.5 font-bold uppercase tracking-widest text-xs hover:border-lime hover:text-lime transition-all"
@@ -132,33 +214,74 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="dxt-card p-6 mb-8">
-        <div className="flex flex-col sm:flex-row gap-6">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="بحث في الأخبار..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-black border border-border-subtle px-4 py-2.5 text-sm text-white focus:outline-none focus:border-lime transition-colors"
-              dir="auto"
-            />
-          </div>
-          <div className="flex gap-2 p-1 bg-black border border-border-subtle">
-            {['all', 'draft', 'published'].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all ${
-                  filter === status
-                    ? 'bg-lime text-black'
-                    : 'text-gray-500 hover:text-white'
-                }`}
+      {/* Bulk Actions & Filters Container */}
+      <div className="space-y-4 mb-8">
+        {selectedIds.length > 0 && (
+          <div className="bg-lime/10 border border-lime/30 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-black text-lime uppercase tracking-widest">
+                تم تحديد {selectedIds.length} عنصر
+              </span>
+              <button 
+                onClick={() => setSelectedIds([])}
+                className="text-[10px] font-bold text-zinc-500 hover:text-white uppercase"
               >
-                {statusLabels[status as keyof typeof statusLabels]}
+                إلغاء التحديد
               </button>
-            ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => bulkUpdateStatus('published')}
+                disabled={isBulkActionLoading}
+                className="flex items-center gap-2 bg-zinc-900 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:border-lime border border-zinc-800 transition-all"
+              >
+                <Share2 size={12} /> إعادة نشر
+              </button>
+              <button
+                onClick={() => bulkUpdateStatus('draft')}
+                disabled={isBulkActionLoading}
+                className="flex items-center gap-2 bg-zinc-900 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:border-zinc-500 border border-zinc-800 transition-all"
+              >
+                <EyeOff size={12} /> إخفاء
+              </button>
+              <button
+                onClick={bulkDelete}
+                disabled={isBulkActionLoading}
+                className="flex items-center gap-2 bg-red-900/20 text-red-500 px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-red-900 hover:text-white border border-red-900/30 transition-all"
+              >
+                <Trash2 size={12} /> حذف المحدد
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="dxt-card p-6">
+          <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="بحث في الأخبار..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-black border border-border-subtle px-4 py-2.5 text-sm text-white focus:outline-none focus:border-lime transition-colors"
+                dir="auto"
+              />
+            </div>
+            <div className="flex gap-2 p-1 bg-black border border-border-subtle">
+              {['all', 'draft', 'published'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilter(status)}
+                  className={`px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    filter === status
+                      ? 'bg-lime text-black'
+                      : 'text-gray-500 hover:text-white'
+                  }`}
+                >
+                  {statusLabels[status as keyof typeof statusLabels]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -173,10 +296,15 @@ export default function AdminDashboard() {
           <p className="text-gray-500 uppercase tracking-widest font-bold">لا توجد سجلات متاحة حالياً.</p>
         </div>
       ) : (
-        <div className="dxt-card overflow-hidden">
+        <div className="dxt-card overflow-x-auto">
           <table className="min-w-full divide-y divide-border-subtle">
             <thead className="bg-black/50">
               <tr>
+                <th className="px-6 py-5 text-right">
+                  <button onClick={toggleSelectAll} className="text-zinc-600 hover:text-lime transition-colors">
+                    {selectedIds.length === articles.length ? <CheckSquare size={18} className="text-lime" /> : <Square size={18} />}
+                  </button>
+                </th>
                 <th className="px-8 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
                   عنوان المقال
                 </th>
@@ -196,7 +324,12 @@ export default function AdminDashboard() {
             </thead>
             <tbody className="divide-y divide-border-subtle">
               {articles.map((article) => (
-                <tr key={article.id} className="hover:bg-lime/[0.02] transition-colors group">
+                <tr key={article.id} className={`hover:bg-lime/[0.02] transition-colors group ${selectedIds.includes(article.id) ? 'bg-lime/[0.03]' : ''}`}>
+                  <td className="px-6 py-6">
+                    <button onClick={() => toggleSelection(article.id)} className="text-zinc-700 hover:text-lime transition-colors">
+                      {selectedIds.includes(article.id) ? <CheckSquare size={18} className="text-lime" /> : <Square size={18} />}
+                    </button>
+                  </td>
                   <td className="px-8 py-6">
                     <div className="max-w-md">
                       <Link
@@ -253,11 +386,22 @@ export default function AdminDashboard() {
           </table>
         </div>
       )}
+      
       <PipelineLogModal 
         isOpen={showLogModal} 
         onClose={() => setShowLogModal(false)} 
         logs={pipelineResults} 
       />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        isDestructive={confirmModal.isDestructive}
+      />
     </div>
   );
 }
+

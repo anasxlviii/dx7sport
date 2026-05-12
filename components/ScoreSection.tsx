@@ -15,6 +15,20 @@ export function ScoreSection({ scores, title = "نتائج الدوريات ال
 
   if (!scores || scores.length === 0) return null;
 
+  const LEAGUE_NAME_AR: Record<string, string> = {
+    'English Premier League': 'الدوري الإنجليزي الممتاز',
+    'Spanish La Liga': 'الدوري الإسباني',
+    'Italian Serie A': 'الدوري الإيطالي',
+    'German Bundesliga': 'الدوري الألماني',
+    'French Ligue 1': 'الدوري الفرنسي',
+    'UEFA Champions League': 'دوري أبطال أوروبا',
+    'UEFA Europa League': 'الدوري الأوروبي',
+    'UEFA Conference League': 'دوري المؤتمر الأوروبي',
+    'Saudi-Arabian Pro League': 'الدوري السعودي',
+    'Saudi Pro League': 'الدوري السعودي',
+    'Major League Soccer': 'الدوري الأمريكي'
+  };
+
   // Group scores by league & FILTER Israeli league (Hard exclusion)
   const groupedScores = scores
     .filter(event => 
@@ -26,7 +40,7 @@ export function ScoreSection({ scores, title = "نتائج الدوريات ال
       !event.strAwayTeam?.toLowerCase().includes('hapoel')
     )
     .reduce((acc, event) => {
-      const league = event.strLeague;
+      const league = LEAGUE_NAME_AR[event.strLeague] || event.strLeague;
       if (!acc[league]) acc[league] = [];
       acc[league].push(event);
       return acc;
@@ -106,13 +120,15 @@ function ScoreCard({ event, formatTime, formatDate, onClick }: { event: SportsEv
   const status = event.strStatus?.toUpperCase() || '';
   const now = new Date();
   const startTime = new Date(event.strTimestamp);
+  const diffMinutes = (now.getTime() - startTime.getTime()) / (1000 * 60);
   
-  // A game is only live if it has a live status AND the start time is in the past (or very recent)
+  // A game is only live if it has a live status AND is within a reasonable timeframe (started within 2.5 hours)
   const isLive = (['1H', '2H', 'HT', 'LIVE', 'P2', 'P1'].includes(status) || 
                   (status.includes("'") && !status.includes("FT"))) &&
-                  (now >= startTime || (startTime.getTime() - now.getTime()) < 5 * 60 * 1000); // Allow 5 min buffer
+                  diffMinutes >= -5 && diffMinutes < 240; // Max 240 mins for live games
 
-  const isFinished = ['MATCH FINISHED', 'FT', 'AET', 'PEN', 'P'].includes(status);
+  // If the game started long ago but isn't explicitly live, it's finished
+  const isFinished = ['MATCH FINISHED', 'FT', 'AET', 'PEN', 'P'].includes(status) || (diffMinutes >= 240 && !isLive);
   const isPostponed = ['PST', 'CANCL', 'ABD'].includes(status);
 
   return (
@@ -129,7 +145,7 @@ function ScoreCard({ event, formatTime, formatDate, onClick }: { event: SportsEv
               {event.strHomeTeamBadge && (
                 <img src={event.strHomeTeamBadge} alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]" />
               )}
-              <span className="text-base font-black text-white truncate max-w-[140px] uppercase italic tracking-tighter">
+              <span className="text-base font-black text-white truncate max-w-[160px] uppercase italic tracking-normal px-1">
                 {event.strHomeTeam}
               </span>
             </div>
@@ -145,7 +161,7 @@ function ScoreCard({ event, formatTime, formatDate, onClick }: { event: SportsEv
               {event.strAwayTeamBadge && (
                 <img src={event.strAwayTeamBadge} alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]" />
               )}
-              <span className="text-base font-black text-white truncate max-w-[140px] uppercase italic tracking-tighter">
+              <span className="text-base font-black text-white truncate max-w-[160px] uppercase italic tracking-normal px-1">
                 {event.strAwayTeam}
               </span>
             </div>
@@ -164,13 +180,13 @@ function ScoreCard({ event, formatTime, formatDate, onClick }: { event: SportsEv
                </div>
              ) : (
                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-                 {isFinished ? 'انتهت' : isPostponed ? 'مؤجلة' : 'قادمة'}
+                 {isFinished ? 'منتهية' : isPostponed ? 'مؤجلة' : 'قادمة'}
                </span>
              )}
           </div>
           <div className="flex flex-col items-end">
             <span className="text-[10px] font-black text-white/40 tracking-widest dxt-numeral">
-              {formatDate(event.strTimestamp)} | {formatTime(event.strTimestamp)}
+              {formatDate(event.strTimestamp)} | {formatTime(event.strTimestamp)} غرينتش
             </span>
             <span className="text-[8px] font-black text-lime uppercase tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
               عرض التفاصيل ←

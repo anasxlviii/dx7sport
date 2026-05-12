@@ -32,7 +32,7 @@ export const TOP_LEAGUES = {
   EUROPA_LEAGUE: '4480',
   CONFERENCE_LEAGUE: '4966',
   // Global
-  SAUDI_PRO_LEAGUE: '4952',
+  SAUDI_PRO_LEAGUE: '4668',
   MLS: '4346',
 };
 
@@ -46,7 +46,7 @@ const LEAGUE_BADGES: Record<string, string> = {
   '4401': 'https://r2.thesportsdb.com/images/media/league/badge/aofb771742983333.png', // Champions League
   '4480': 'https://r2.thesportsdb.com/images/media/league/badge/facv1u1742998896.png', // Europa League
   '4966': 'https://r2.thesportsdb.com/images/media/league/badge/54hu9p1664190019.png', // Conference League
-  '4952': 'https://r2.thesportsdb.com/images/media/league/badge/2bdq071615833896.png', // Saudi Pro League
+  '4668': 'https://r2.thesportsdb.com/images/media/league/badge/w67i621701772123.png', // Saudi Pro League
   '4346': 'https://r2.thesportsdb.com/images/media/league/badge/dqo6r91549878326.png', // MLS
 };
 

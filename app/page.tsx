@@ -5,6 +5,7 @@ import { desc, eq } from 'drizzle-orm';
 import { ArticleCard } from '@/components/ArticleCard';
 import { FeedFilter } from '@/components/FeedFilter';
 import { ScoreSection } from '@/components/ScoreSection';
+import { HeroSlideshow } from '@/components/HeroSlideshow';
 import { getTopLeaguesScores } from '@/lib/pipeline/sportsdb';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
 
@@ -47,24 +48,26 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-black" dir="rtl">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-black py-24 dxt-hero-pattern">
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
+      <section className="relative overflow-hidden bg-black min-h-[80vh] flex items-center justify-center py-32 dxt-hero-pattern">
+        <HeroSlideshow />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 text-center">
-          <div className="inline-block px-4 py-1.5 mb-8 border border-lime/50 text-lime text-[10px] font-black uppercase tracking-[0.4em] bg-lime/5">
-            أخبار حصرية وتغطية شاملة
+          <div className="flex flex-col items-center mb-8">
+            <div className="inline-block px-4 py-1.5 border border-lime/50 text-lime text-[10px] font-black uppercase tracking-[0.4em] bg-lime/10 backdrop-blur-sm">
+              أخبار حصرية وتغطية شاملة
+            </div>
           </div>
-          <h1 className="text-6xl md:text-8xl font-black mb-8 italic tracking-tighter uppercase dxt-gradient-text leading-[0.9]">
+          <h1 className="text-6xl md:text-9xl font-black mb-12 italic uppercase dxt-gradient-text leading-[1.2] py-4">
             ارتقِ بمستوى <br /> متابعتك للكرة
           </h1>
-          <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto font-medium leading-[1.8] mb-12">
+          <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto font-medium leading-[1.8] mb-12 drop-shadow-lg">
             تحليلات تكتيكية عميقة، أخبار الانتقالات العاجلة، <br className="hidden md:block" /> وتقارير حصرية للمشجع النخبوي.
           </p>
           <div className="flex justify-center gap-6">
-            <Link href="/category/news" className="bg-lime text-black px-10 py-4 font-black uppercase tracking-widest text-xs hover:bg-white transition-all transform hover:-translate-y-1">
+            <Link href="/category/news" className="bg-lime text-black px-10 py-5 font-black uppercase tracking-widest text-xs hover:bg-white transition-all transform hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(163,255,0,0.4)]">
               آخر الأخبار
             </Link>
-            <Link href="/category/transfer" className="border border-zinc-800 text-white px-10 py-4 font-black uppercase tracking-widest text-xs hover:bg-zinc-900 transition-all">
+            <Link href="/category/transfer" className="border-2 border-white/10 bg-black/40 backdrop-blur-md text-white px-10 py-5 font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all transform hover:-translate-y-1">
               سوق الانتقالات
             </Link>
           </div>
@@ -75,10 +78,10 @@ export default async function Home() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-end justify-between mb-12">
-          <div>
-            <h2 className="text-xs font-black text-lime uppercase tracking-[0.4em] mb-3">أبرز العناوين</h2>
-            <h3 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">آخر المستجدات</h3>
+          <div className="flex flex-col items-start mb-3">
+            <h2 className="text-xs font-black text-lime uppercase tracking-[0.4em]">أبرز العناوين</h2>
           </div>
+          <h3 className="text-5xl font-black italic text-white uppercase leading-tight py-2">آخر المستجدات</h3>
 
           <div className="h-px flex-1 bg-zinc-900 mx-10 hidden md:block mb-3" />
         </div>
@@ -97,19 +100,15 @@ export default async function Home() {
                   className="group dxt-card flex flex-col h-full bg-zinc-950 border-zinc-900 relative overflow-hidden"
                   style={{ minHeight: '500px' }}
                 >
-                  {featuredArticle.featuredImage ? (
-                    <div className="absolute inset-0 z-0">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent z-10" />
-                      <img
-                        src={featuredArticle.featuredImage}
-                        alt={featuredArticle.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                      />
-                    </div>
-                  ) : (
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-lime/5 rotate-45 translate-x-32 -translate-y-32 z-0" />
-                  )}
+                  <div className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent z-10" />
+                    <img
+                      src={featuredArticle.featuredImage || '/hero/default_card.png'}
+                      alt={featuredArticle.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                    />
+                  </div>
                   <div className="p-12 flex-1 z-20 flex flex-col justify-end max-w-3xl">
                     <div className="flex items-center gap-3 mb-6">
                       <span className="w-2.5 h-2.5 bg-lime rounded-full shadow-[0_0_15px_rgba(179,212,0,0.9)] animate-pulse" />
@@ -117,7 +116,7 @@ export default async function Home() {
                         الخبر الرئيسي | {featuredArticle.category === 'news' ? 'أخبار' : featuredArticle.category === 'transfer' ? 'انتقالات' : featuredArticle.category === 'match_report' ? 'تقارير' : featuredArticle.category === 'comparison' ? 'مقارنات' : featuredArticle.category}
                       </span>
                     </div>
-                    <h3 className="text-4xl md:text-6xl font-black italic text-white leading-[1.1] mb-8 group-hover:text-lime transition-colors tracking-tighter">
+                    <h3 className="text-4xl md:text-6xl font-black italic text-white leading-[1.3] mb-8 group-hover:text-lime transition-colors py-2">
                       {featuredArticle.title}
                     </h3>
                     {featuredArticle.excerpt && (
@@ -162,8 +161,10 @@ export default async function Home() {
            <div className="absolute inset-0 bg-gradient-to-r from-lime/20 to-transparent z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
            <div className="bg-zinc-950 border border-zinc-900 p-12 md:p-20 relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
               <div className="max-w-2xl text-center md:text-right">
-                 <h2 className="text-xs font-black text-lime uppercase tracking-[0.6em] mb-4">DX7 ARCADE</h2>
-                 <h3 className="text-5xl md:text-7xl font-black italic text-white tracking-tighter uppercase mb-6 leading-none">
+                 <div className="flex flex-col items-center md:items-start mb-4">
+                    <h2 className="text-xs font-black text-lime uppercase tracking-[0.6em]">DX7 ARCADE</h2>
+                 </div>
+                 <h3 className="text-5xl md:text-7xl font-black italic text-white uppercase mb-6 leading-tight py-2">
                     ساحة <span className="text-lime">الألعاب</span> والتحديات
                  </h3>
                  <p className="text-gray-500 text-lg font-medium leading-relaxed">
@@ -184,7 +185,7 @@ export default async function Home() {
           <div className="mt-24">
             <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter flex items-center gap-4">
+                <h2 className="text-4xl font-black italic text-white uppercase flex items-center gap-4 py-2">
                   <span className="w-12 h-1 bg-lime shadow-[0_0_15px_rgba(179,212,0,0.5)]" />
                   آخر الأخبار العالمية
                 </h2>
@@ -207,7 +208,7 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-20">
             <h2 className="text-xs font-black text-lime uppercase tracking-[0.5em] mb-4">الأقسام الرئيسية</h2>
-            <p className="text-3xl font-black italic text-white uppercase tracking-tighter">تغطية شاملة لكل زوايا اللعبة</p>
+            <p className="text-3xl font-black italic text-white uppercase py-2">تغطية شاملة لكل زوايا اللعبة</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
             {[
@@ -222,7 +223,7 @@ export default async function Home() {
                 className="group border border-zinc-900 bg-black p-10 transition-all hover:border-lime/40 hover:-translate-y-2"
               >
                 <div className="w-12 h-1 mb-8 bg-zinc-800 group-hover:bg-lime transition-colors" />
-                <p className="text-2xl font-black italic text-white uppercase group-hover:text-lime transition-colors mb-3">
+                <p className="text-2xl font-black italic text-white uppercase group-hover:text-lime transition-colors mb-3 py-1">
                   {category.name}
                 </p>
                 <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">

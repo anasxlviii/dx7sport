@@ -177,16 +177,7 @@ export default function MatchDetailModal({ eventId, onClose }: MatchDetailModalP
                 </div>
               )}
               
-              {/* Footer / SofaScore Link */}
-              <div className="pt-8 text-center border-t border-zinc-900">
-                 <a 
-                  href={`https://www.sofascore.com/search?q=${encodeURIComponent(details.strHomeTeam + ' ' + details.strAwayTeam)}`}
-                  target="_blank"
-                  className="text-[9px] font-black text-zinc-600 hover:text-lime transition-colors uppercase tracking-[0.3em]"
-                 >
-                    مشاهدة التفاصيل الكاملة على SofaScore →
-                 </a>
-              </div>
+
             </div>
           ) : (
             <div className="py-24 text-center">

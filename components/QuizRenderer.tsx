@@ -11,11 +11,19 @@ interface QuizQuestion {
   clueLogos?: string[];
 }
 
+interface CrosswordClue {
+  number: number;
+  clue: string;
+  row: number;
+  col: number;
+  answer: string;
+}
+
 interface CrosswordData {
   grid: (string | null)[][];
   clues: {
-    across: string[];
-    down: string[];
+    across: CrosswordClue[];
+    down: CrosswordClue[];
   };
 }
 
@@ -87,33 +95,45 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
             style={{ gridTemplateColumns: `repeat(${crossword.grid[0].length}, minmax(0, 1fr))` }}
           >
             {userGrid.map((row, rIdx) =>
-              row.map((cell, cIdx) => (
-                <div key={`${rIdx}-${cIdx}`} className="aspect-square w-10 md:w-14 relative">
-                  {cell === null ? (
-                    <div className="w-full h-full bg-black/60 border border-zinc-900/50" />
-                  ) : (
-                    <input
-                      type="text"
-                      maxLength={1}
-                      value={userGrid[rIdx][cIdx] || ''}
-                      disabled={validated}
-                      onChange={(e) => {
-                        const newGrid = userGrid.map((r) => [...r]);
-                        newGrid[rIdx][cIdx] = e.target.value.toUpperCase();
-                        setUserGrid(newGrid);
-                      }}
-                      className={`w-full h-full text-white text-center font-black text-xl focus:outline-none border transition-all
-                        ${
-                          validated
-                            ? correctCells[rIdx]?.[cIdx]
-                              ? 'bg-lime/20 border-lime text-lime'
-                              : 'bg-red-500/20 border-red-500 text-red-400'
-                            : 'bg-zinc-900 border-zinc-800 focus:bg-lime/20 focus:ring-2 focus:ring-lime/50'
-                        }`}
-                    />
-                  )}
-                </div>
-              ))
+              row.map((cell, cIdx) => {
+                const clueNumber = crossword.clues.across.find(c => c.row === rIdx && c.col === cIdx)?.number || 
+                                   crossword.clues.down.find(c => c.row === rIdx && c.col === cIdx)?.number;
+                
+                return (
+                  <div key={`${rIdx}-${cIdx}`} className="aspect-square w-10 md:w-14 relative">
+                    {cell === null ? (
+                      <div className="w-full h-full bg-black/60 border border-zinc-900/50" />
+                    ) : (
+                      <>
+                        {clueNumber && (
+                          <span className="absolute top-0.5 right-1 text-[8px] md:text-[10px] font-black text-lime/50 z-20">
+                            {clueNumber}
+                          </span>
+                        )}
+                        <input
+                          type="text"
+                          maxLength={1}
+                          value={userGrid[rIdx][cIdx] || ''}
+                          disabled={validated}
+                          onChange={(e) => {
+                            const newGrid = userGrid.map((r) => [...r]);
+                            newGrid[rIdx][cIdx] = e.target.value.toUpperCase();
+                            setUserGrid(newGrid);
+                          }}
+                          className={`w-full h-full text-white text-center font-black text-xl focus:outline-none border transition-all
+                            ${
+                              validated
+                                ? correctCells[rIdx]?.[cIdx]
+                                  ? 'bg-lime/20 border-lime text-lime'
+                                  : 'bg-red-500/20 border-red-500 text-red-400'
+                                : 'bg-zinc-900 border-zinc-800 focus:bg-lime/20 focus:ring-2 focus:ring-lime/50'
+                            }`}
+                        />
+                      </>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
 
@@ -138,12 +158,12 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
               <span className="w-1 h-3 bg-lime" /> أفقياً (Across)
             </h4>
             <ul className="space-y-3">
-              {crossword.clues.across.map((clue, i) => (
+              {crossword.clues.across.map((c) => (
                 <li
-                  key={i}
+                  key={c.number}
                   className="text-sm font-bold text-gray-400 leading-relaxed bg-zinc-950/50 p-4 border border-zinc-900 hover:border-zinc-700 transition-colors cursor-default"
                 >
-                  <span className="text-lime mr-3 font-black opacity-50">{i + 1}.</span> {clue}
+                  <span className="text-lime mr-3 font-black opacity-50">{c.number}.</span> {c.clue}
                 </li>
               ))}
             </ul>
@@ -153,12 +173,12 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
               <span className="w-1 h-3 bg-lime" /> رأسياً (Down)
             </h4>
             <ul className="space-y-3">
-              {crossword.clues.down.map((clue, i) => (
+              {crossword.clues.down.map((c) => (
                 <li
-                  key={i}
+                  key={c.number}
                   className="text-sm font-bold text-gray-400 leading-relaxed bg-zinc-950/50 p-4 border border-zinc-900 hover:border-zinc-700 transition-colors cursor-default"
                 >
-                  <span className="text-lime mr-3 font-black opacity-50">{i + 1}.</span> {clue}
+                  <span className="text-lime mr-3 font-black opacity-50">{c.number}.</span> {c.clue}
                 </li>
               ))}
             </ul>
@@ -170,7 +190,7 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
         {!validated ? (
           <button
             onClick={handleValidate}
-            className="px-16 py-5 bg-lime text-black font-black uppercase tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(179,212,0,0.2)] active:scale-95"
+            className="px-16 py-5 bg-lime text-black font-black uppercase tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(158,255,0,0.2)] active:scale-95"
           >
             تحقق من الحل
           </button>
@@ -247,7 +267,7 @@ export function QuizRenderer({ data }: Props) {
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
         <div className="relative z-10">
           <h2 className="text-5xl font-black italic text-lime mb-8 uppercase tracking-tighter">النتيجة النهائية</h2>
-          <div className="w-40 h-40 rounded-full border-4 border-lime flex flex-col items-center justify-center mx-auto mb-6 bg-lime/10 shadow-[0_0_50px_rgba(179,212,0,0.2)]">
+          <div className="w-40 h-40 rounded-full border-4 border-lime flex flex-col items-center justify-center mx-auto mb-6 bg-lime/10 shadow-[0_0_50px_rgba(158,255,0,0.2)]">
             <span className="text-5xl font-black text-white leading-none">{score}</span>
             <span className="text-[10px] font-black text-lime mt-1 opacity-50 uppercase tracking-widest">من {questions.length}</span>
           </div>
@@ -278,7 +298,7 @@ export function QuizRenderer({ data }: Props) {
               setStreak(0);
               setMaxStreak(0);
             }}
-            className="px-16 py-5 bg-lime text-black font-black uppercase tracking-[0.3em] hover:bg-white transition-all shadow-[0_20px_40px_rgba(179,212,0,0.3)] active:scale-95"
+            className="px-16 py-5 bg-lime text-black font-black uppercase tracking-[0.3em] hover:bg-white transition-all shadow-[0_20px_40px_rgba(158,255,0,0.3)] active:scale-95"
           >
             إعادة المحاولة
           </button>
@@ -294,7 +314,7 @@ export function QuizRenderer({ data }: Props) {
       {/* Streak animation overlay */}
       {showStreakAnim && (
         <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center animate-in zoom-in duration-300">
-          <div className="text-8xl font-black text-lime drop-shadow-[0_0_40px_rgba(179,212,0,0.8)] animate-bounce">
+          <div className="text-8xl font-black text-lime drop-shadow-[0_0_40px_rgba(158,255,0,0.8)] animate-bounce">
             🔥 {streak}
           </div>
         </div>
@@ -332,7 +352,7 @@ export function QuizRenderer({ data }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mb-16">
         {/* Visual Clue */}
         <div className="bg-zinc-950 border border-zinc-900 flex flex-col items-center justify-center p-12 relative group overflow-hidden shadow-2xl min-h-[450px]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(179,212,0,0.05)_0%,_transparent_70%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(158,255,0,0.05)_0%,_transparent_70%)]" />
 
           {currentQuestion.clueLogos && currentQuestion.clueLogos.length > 0 && (
             <div className="grid grid-cols-3 gap-6 mb-12 relative z-10 w-full max-w-sm">
@@ -347,38 +367,39 @@ export function QuizRenderer({ data }: Props) {
             </div>
           )}
 
-          <div className="relative z-10 w-full flex-1 flex items-center justify-center">
+          <div className="relative z-10 w-full flex-1 flex flex-col items-center justify-center">
             {currentQuestion.imageUrl ? (
-              <div className="relative group/img overflow-hidden">
+              <div key={currentQuestion.question} className="relative group/img flex items-center justify-center min-h-[300px] w-full">
+                {/* Background glow for dark logos on black */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-64 h-64 bg-white/5 rounded-full blur-[80px]" />
+                </div>
+
                 <img
-                  src={currentQuestion.imageUrl}
+                  src={currentQuestion.imageUrl || '/favicon.png'}
                   alt="Quiz clue"
+                  loading="eager"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://r2.thesportsdb.com/images/media/team/badge/dqo6r91549878326.png';
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== '/favicon.png') {
+                      target.src = '/favicon.png';
+                    }
                   }}
-                  className={`max-w-[280px] max-h-[280px] object-contain transition-all duration-1000 ${
+                  className={`max-w-[320px] max-h-[320px] w-auto h-auto object-contain transition-all duration-1000 relative z-10 ${
                     !selectedOption && (
                       currentQuestion.question.toLowerCase().includes('guess') || 
                       currentQuestion.question.includes('خمن') || 
                       currentQuestion.question.includes('من هو') || 
                       currentQuestion.question.includes('ما هو') ||
-                      currentQuestion.question.includes('الفريق')
+                      currentQuestion.question.includes('الفريق') ||
+                      currentQuestion.question.includes('الشعار') ||
+                      currentQuestion.question.includes('اللاعب')
                     )
-                      ? 'blur-3xl opacity-20 scale-75'
-                      : 'group-hover/img:scale-110 drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]'
+                      ? 'opacity-80 scale-100'
+                      : 'opacity-100 scale-100 drop-shadow-[0_0_30px_rgba(158,255,0,0.3)]'
                   }`}
                 />
-                {!selectedOption && (
-                  currentQuestion.question.toLowerCase().includes('guess') || 
-                  currentQuestion.question.includes('خمن') || 
-                  currentQuestion.question.includes('من هو') || 
-                  currentQuestion.question.includes('ما هو') ||
-                  currentQuestion.question.includes('الفريق')
-                ) && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-6xl animate-pulse">❓</div>
-                  </div>
-                )}
+                {/* Question mark overlay removed for clarity */}
               </div>
             ) : !currentQuestion.clueLogos ? (
               <div className="text-[120px] opacity-5 animate-bounce">⚽</div>
@@ -430,7 +451,7 @@ export function QuizRenderer({ data }: Props) {
             btnStyle += 'border-zinc-900 bg-zinc-950 text-white hover:border-lime hover:bg-zinc-900 hover:-translate-y-1';
           } else {
             if (option === currentQuestion.correctAnswer) {
-              btnStyle += 'border-lime bg-lime text-black shadow-[0_20px_40px_rgba(179,212,0,0.3)] z-10 scale-105';
+              btnStyle += 'border-lime bg-lime text-black shadow-[0_20px_40px_rgba(158,255,0,0.3)] z-10 scale-105';
             } else if (option === selectedOption) {
               btnStyle += 'border-red-500/50 bg-red-500/10 text-red-500 opacity-80';
             } else {

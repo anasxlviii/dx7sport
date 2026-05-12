@@ -71,7 +71,7 @@ export default async function CategoryPage({
             <div className="w-2 h-16 bg-lime shadow-[0_0_20px_rgba(179,212,0,0.4)]" />
             <div>
               <h2 className="text-[10px] font-black text-lime uppercase tracking-[0.5em] mb-2">تصفح قسم</h2>
-              <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter text-white uppercase leading-none">{categoryTitle}</h1>
+              <h1 className="text-5xl md:text-7xl font-black italic text-white uppercase leading-tight py-2">{categoryTitle}</h1>
             </div>
           </div>
         </div>

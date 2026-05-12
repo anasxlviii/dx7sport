@@ -113,6 +113,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
             ]);
             return `
 TEAM: ${team.strTeam}
+LOGO_URL: ${team.strTeamBadge ? team.strTeamBadge.replace('www.thesportsdb.com', 'r2.thesportsdb.com') : ''}
 RECENT RESULTS:
 ${last.map(r => `- ${r.strEvent}: ${r.intHomeScore}-${r.intAwayScore} (${r.strTimestamp})`).join('\n')}
 UPCOMING FIXTURES:

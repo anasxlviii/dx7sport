@@ -13,11 +13,11 @@ export function ArticleCard({ article, compact = false }: { article: any, compac
       href={`/article/${article.slug}`}
       className={`group border border-zinc-900 bg-zinc-950 flex flex-col h-full overflow-hidden transition-all hover:border-lime/30 ${compact ? 'hover:bg-zinc-900' : ''}`}
     >
-      {article.featuredImage && !compact && (
+      {!compact && (
         <div className="w-full h-56 overflow-hidden relative">
           <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors z-10" />
           <img 
-            src={article.featuredImage} 
+            src={article.featuredImage || '/hero/default_card.png'} 
             alt={article.title} 
             className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-1000"
           />
@@ -39,7 +39,7 @@ export function ArticleCard({ article, compact = false }: { article: any, compac
           </div>
         )}
         
-        <h3 className={`${compact ? 'text-xl' : 'text-3xl'} font-black italic text-white leading-tight mb-5 group-hover:text-lime transition-colors line-clamp-3 tracking-tighter`}>
+        <h3 className={`${compact ? 'text-xl' : 'text-3xl'} font-black italic text-white leading-tight mb-5 group-hover:text-lime transition-colors line-clamp-3 py-1`}>
           {article.title}
         </h3>
         

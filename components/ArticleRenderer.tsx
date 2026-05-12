@@ -53,9 +53,9 @@ export function ArticleRenderer({ content, galleryImages, adMidArticle, adMidEna
             className="
               prose prose-invert max-w-none
               [&_p]:text-gray-200 [&_p]:leading-[2.4] [&_p]:text-[1.1rem] [&_p]:font-medium [&_p]:mb-10 [&_p]:tracking-wide [&_p]:text-justify
-              [&_h2]:text-white [&_h2]:font-black [&_h2]:italic [&_h2]:uppercase [&_h2]:tracking-tight
-              [&_h2]:text-3xl [&_h2]:mt-16 [&_h2]:mb-6 [&_h2]:border-r-8 [&_h2]:border-lime [&_h2]:pr-6 [&_h2]:leading-snug
-              [&_h3]:text-lime [&_h3]:font-black [&_h3]:text-xl [&_h3]:mt-12 [&_h3]:mb-5 [&_h3]:uppercase [&_h3]:tracking-wide
+              [&_h2]:text-white [&_h2]:font-black [&_h2]:italic [&_h2]:uppercase [&_h2]:py-2
+              [&_h2]:text-3xl [&_h2]:mt-16 [&_h2]:mb-6 [&_h2]:border-r-8 [&_h2]:border-lime [&_h2]:pr-6 [&_h2]:leading-[1.4]
+              [&_h3]:text-lime [&_h3]:font-black [&_h3]:text-xl [&_h3]:mt-12 [&_h3]:mb-5 [&_h3]:uppercase [&_h3]:py-1
               [&_strong]:text-lime [&_strong]:font-black [&_strong]:text-[1.1em]
               [&_em]:text-gray-300 [&_em]:font-semibold [&_em]:not-italic [&_em]:bg-white/5 [&_em]:px-1
               [&_a]:text-lime [&_a]:font-bold [&_a]:underline-offset-4 hover:[&_a]:text-white transition-colors

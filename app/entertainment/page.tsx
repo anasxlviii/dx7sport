@@ -10,7 +10,7 @@ const FEATURED_GAMES = [
     title: 'تحدي شعارات الأندية العالمية',
     description: '20 مستوى من الإثارة! هل يمكنك التعرف على أقوى أندية العالم والعرب من شعاراتهم؟',
     category: 'Logo Quiz',
-    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=800',
+    image: '/hero/entertainment_hub.png',
     data: {
       type: 'multiple_choice',
       questions: [
@@ -62,7 +62,7 @@ export default async function EntertainmentPage() {
         title: q.title,
         description: q.excerpt || 'تحدي جديد من إنتاج الذكاء الاصطناعي لـ DX7 Sport',
         category: 'AI Challenge',
-        image: q.featuredImage || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=800',
+        image: q.featuredImage || '/hero/entertainment_hub.png',
         data: quizData
       };
     }).filter(q => q.data) // Only show if valid data exists
@@ -73,7 +73,7 @@ export default async function EntertainmentPage() {
       {/* Hero Section */}
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden border-b border-zinc-900">
          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black z-10" />
-         <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1600')] bg-cover bg-center animate-pulse-slow" />
+         <div className="absolute inset-0 opacity-40 bg-[url('/hero/entertainment_hub.png')] bg-cover bg-center animate-pulse-slow" />
          
          <div className="relative z-20 text-center px-4">
             <h2 className="text-xs font-black text-lime uppercase tracking-[0.6em] mb-6 animate-in slide-in-from-top duration-1000">DX7 ENTERTAINMENT HUB</h2>

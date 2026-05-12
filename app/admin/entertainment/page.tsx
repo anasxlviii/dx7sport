@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Article {
   id: number;
@@ -16,6 +17,7 @@ export default function EntertainmentAdmin() {
   const [quizzes, setQuizzes] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   useEffect(() => {
     fetchQuizzes();
@@ -35,18 +37,15 @@ export default function EntertainmentAdmin() {
   }
 
   async function seedQuizzes() {
-    if (!confirm('سيتم إضافة 3 ألعاب تجريبية إلى الموقع. هل أنت متأكد؟')) return;
-    
     setSeeding(true);
     try {
       const res = await fetch('/api/seed');
       const data = await res.json();
       if (data.success) {
-        alert('تمت إضافة الألعاب بنجاح!');
         fetchQuizzes();
       }
     } catch (err) {
-      alert('فشل في إضافة الألعاب.');
+      console.error('Seed failed:', err);
     } finally {
       setSeeding(false);
     }
@@ -63,13 +62,14 @@ export default function EntertainmentAdmin() {
           <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase mt-4">قسم التسلية والألغاز</h1>
         </div>
         <button
-          onClick={seedQuizzes}
+          onClick={() => setIsConfirmOpen(true)}
           disabled={seeding}
           className="bg-zinc-900 text-lime border border-lime px-6 py-2.5 font-bold uppercase tracking-widest text-xs hover:bg-lime hover:text-black transition-all disabled:opacity-50"
         >
           {seeding ? 'جاري الإضافة...' : '🚀 إضافة ألعاب تجريبية'}
         </button>
       </div>
+
 
       <div className="grid grid-cols-1 gap-6">
         <div className="dxt-card p-8 border-lime/10 bg-gradient-to-br from-zinc-950 to-black">
@@ -123,6 +123,15 @@ export default function EntertainmentAdmin() {
           </div>
         )}
       </div>
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={seedQuizzes}
+        title="إضافة ألعاب تجريبية"
+        message="سيتم إضافة 3 ألعاب تجريبية (Quizzes) إلى الموقع. هل أنت متأكد؟"
+        confirmLabel="إضافة"
+        isDestructive={false}
+      />
     </div>
   );
 }

@@ -38,6 +38,20 @@ const AD_SLOTS = [
     size: 'N/A',
     placeholder: '<script type="text/javascript" src="//pl...adsterra...js"></script>',
   },
+  {
+    key: 'ad_smartlink',
+    label: 'Adsterra Smartlink (Direct Link)',
+    desc: 'رابط مباشر ذكي يقوم بتحويل المستخدم لأفضل العروض. سيتم استخدامه في الأزرار التفاعلية.',
+    size: 'N/A',
+    placeholder: 'https://smartlink-url.com/...',
+  },
+  {
+    key: 'ad_social_bar',
+    label: 'Adsterra Social Bar',
+    desc: 'إعلان يظهر كإشعار ذكي في زاوية الصفحة. ضعه هنا وسيعمل تلقائياً.',
+    size: 'N/A',
+    placeholder: '<script type="text/javascript" src="//pl...adsterra...js"></script>',
+  },
 ];
 
 export default function AdsSettingsPage() {

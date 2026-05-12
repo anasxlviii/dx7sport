@@ -107,7 +107,7 @@ const articleSchema: Schema = {
     quizData: {
       type: Type.OBJECT,
       description:
-        'ONLY FOR QUIZZES: Structured data for the quiz game. Create at least 10-15 questions for a deep experience.',
+        'ONLY FOR QUIZZES: Structured data for the quiz game. Create at least 12-15 questions for a deep experience.',
       properties: {
         type: {
           type: Type.STRING,
@@ -122,7 +122,7 @@ const articleSchema: Schema = {
               question: {
                 type: Type.STRING,
                 description:
-                  "The question or clue. For 'Guess the Player', describe their transfer history or achievements.",
+                  "The question text. IMPORTANT: If 'imageUrl' or 'clueLogos' are provided, DO NOT include descriptive spoilers in this text (e.g., stadium names, history). Keep it generic like 'من هو هذا الفريق؟' or 'من هو هذا اللاعب؟'.",
               },
               options: {
                 type: Type.ARRAY,
@@ -130,7 +130,10 @@ const articleSchema: Schema = {
                 description: '4 possible answers',
               },
               correctAnswer: { type: Type.STRING, description: 'The correct answer' },
-              hint: { type: Type.STRING },
+              hint: { 
+                type: Type.STRING,
+                description: 'A professional hint. For visual quizzes, the hint should NOT be too obvious.'
+              },
               imageUrl: {
                 type: Type.STRING,
                 description:
@@ -140,7 +143,7 @@ const articleSchema: Schema = {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
                 description:
-                  'Optional: URLs of team logos to show as visual clues (e.g. clubs they played for)',
+                  'URLs of team logos to show as visual clues (e.g. clubs they played for). USE ONLY REAL URLS.',
               },
             },
             required: ['question', 'options', 'correctAnswer'],
@@ -157,8 +160,34 @@ const articleSchema: Schema = {
             clues: {
               type: Type.OBJECT,
               properties: {
-                across: { type: Type.ARRAY, items: { type: Type.STRING } },
-                down: { type: Type.ARRAY, items: { type: Type.STRING } },
+                across: { 
+                  type: Type.ARRAY, 
+                  items: { 
+                    type: Type.OBJECT,
+                    properties: {
+                      number: { type: Type.NUMBER },
+                      clue: { type: Type.STRING },
+                      row: { type: Type.NUMBER },
+                      col: { type: Type.NUMBER },
+                      answer: { type: Type.STRING }
+                    },
+                    required: ['number', 'clue', 'row', 'col', 'answer']
+                  } 
+                },
+                down: { 
+                  type: Type.ARRAY, 
+                  items: { 
+                    type: Type.OBJECT,
+                    properties: {
+                      number: { type: Type.NUMBER },
+                      clue: { type: Type.STRING },
+                      row: { type: Type.NUMBER },
+                      col: { type: Type.NUMBER },
+                      answer: { type: Type.STRING }
+                    },
+                    required: ['number', 'clue', 'row', 'col', 'answer']
+                  } 
+                },
               },
             },
           },
@@ -197,58 +226,36 @@ CRITICAL SOURCE PRIORITY:
 
 CRITICAL LANGUAGE & STYLING RULES: 
 - EVERY WORD YOU OUTPUT MUST BE IN SOPHISTICATED FUSHA ARABIC (Modern Standard Arabic). 
-- NO INTRODUCTIONS OR CONCLUSIONS: Do not say "In this article" or "In conclusion". Jump directly into the heat of the action like a professional magazine.
-- NUMBERS AS WORDS: Do not use Arabic/Western numerals (0-9) for quantities. Write them as Arabic words (e.g., write "ثلاثة أهداف" instead of "3 أهداف", "خمس نقاط" instead of "5 نقاط"). 
-  * EXCEPTION: You may use numerals ONLY for match scores (e.g., 2-1) and specific years/dates.
-- SUPERIOR EXPRESSION: Arabic is a rich language. Avoid repeating words. Use diverse synonyms and poetic, high-impact metaphors. No redundancy.
-- STALAGMITE RULE: NEVER mix Latin/English letters within Arabic words or sentences. 
-- SPECIFICITY: Always name the opponents, the venue, and the date if provided in context. Never be vague.
-- TACTICAL DEPTH: Write like a pundit who understands formations, XG, and player movement.
-- NO SLANG: Use "برشلونة" (Barcelona), NEVER "بارسا" ou "بارصا". Use "ريال مدريد" (Real Madrid), NEVER "المرينغي" unless in a very poetic context.
+- NO INTRODUCTIONS OR CONCLUSIONS: DO NOT use phrases like "في هذا المقال" (In this article) or "ختاماً" (In conclusion). Start the article directly with a powerful, descriptive opening paragraph.
+- NUMBERS AS WORDS: Every single quantity or number MUST be written as an Arabic word.
+  * E.g., Write "خمسة أهداف" instead of "5 أهداف".
+  * E.g., Write "المركز العاشر" instead of "المركز 10".
+  * ABSOLUTE EXCEPTION: Match scores (e.g., 2-1) and specific years (e.g., 2024) MUST be written in Western numerals (0-9).
+- SUPERIOR EXPRESSION: Use the full richness of the Arabic language. Avoid redundancy. Use poetic metaphors, epic descriptions, and high-impact vocabulary.
+- LONG COHESIVE PARAGRAPHS: Do not write short, scattered sentences. Every section must have 3-4 dense, analytical, and beautifully written paragraphs.
+- TACTICAL DEPTH: Analyze formations, transitions, and individual performances like a veteran pundit.
+- NO SLANG: Always use "برشلونة" and "ريال مدريد". Use nicknames (e.g., "الملكي") only for poetic emphasis.
 - TODAY'S DATE IS ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}.
 - OFFICIAL VERIFIED DATA (TheSportsDB): 
   ${factCheckedData || 'No specific team data found. Use web context carefully.'}
 
 - USE ONLY SEARCH CONTEXT: For current news, squad lists, and scores, ONLY use the provided "LIVE SEARCH CONTEXT" and "OFFICIAL VERIFIED DATA". 
-- DO NOT hallucinate old facts or use internal training data for recent events. 
-- If you mention future fixtures or past scores, they MUST match the "OFFICIAL VERIFIED DATA" exactly.
-
-VERBOSITY & ARABIC LINGUISTIC EXCELLENCE:
-- This is a PREMIUM MAGAZINE. Articles must be LONG, EPIC, and POETIC.
-- Arabic is a rich and expressive language; use its full potential. Avoid simple, school-level sentences.
-- Use SOPHISTICATED, FLOWING, and COMPLEX sentence structures.
-- NO SCATTERED SENTENCES. Every section must consist of 3-4 LONG, cohesive, and deeply analytical paragraphs.
-- Aim for a "Literary Sport Journalism" style (أدب الصحافة الرياضية). Use evocative and powerful vocabulary.
-
-ABSOLUTE SPECIFICITY RULE:
-- NEVER be vague. If you mention future challenges, you MUST name the specific opponents, dates, and venues provided in the "OFFICIAL VERIFIED DATA".
-- Never say "a difficult match"; say "the upcoming clash against [Team Name] at [Stadium]".
-- If a team has a recent result, mention the score exactly (e.g., "الانتصار العريض بنتيجة 3-0").
-- INTEGRATE the facts into the narrative flow of the paragraphs. Do not just list them.
-
-CRITICAL PERSONA & TONE:
-- You are a SEASONED JOURNALIST and a LITERARY GIANT in the sports world.
-- Your writing should inspire, educate, and "WOW" the reader with its depth and beauty.
-- Use technical tactical terminology, but wrap it in elegant Arabic prose.
-- USE ACTUAL FACTS: Prioritize data from the Search Context. Cite specific recent matches, tactical changes, and verified news. Avoid being "vague". Analyze the "WHY" and "HOW" behind the news.
+- ABSOLUTE SPECIFICITY: Never be vague. Name the opponents, the venue, and the exact dates provided in the context.
 
 CRITICAL EXCLUSION RULE:
 - NEVER mention or reference the Israeli league, teams, or players.
 
-ARTICLE STRUCTURE & VISUALS (NON-NEGOTIABLE):
-1. MANDATORY H2 HEADINGS: Every main section MUST start with a \`## \` heading. This triggers the signature DX7 green vertical line in our UI. Without \`## \`, the article looks broken.
-2. BOLD PARAGRAPH TITLES: Start EVERY paragraph with a short **Bold Lead-in** that summarizes the paragraph's point (e.g., **التحول التكتيكي المذهل:** ...).
-3. ARTICLE LENGTH: Minimum 1500 words. Go into extreme detail about player stats, historical comparisons, and future implications.
-4. LANGUAGE: Sophisticated FUSHA ARABIC (Modern Standard Arabic). Use Western numerals (0-9).
-5. FORMATTING: 
-   - Use \`## \` for major section breaks.
-   - Use \`> \` for intense tactical summaries or pundit "hot takes".
-   - Use bold text frequently for emphasis.
-   - Use bullet points for squad lists or key tactical instructions.
-
-QUIZ & GAME DESIGN: (Only if category is quiz)
-- Create 20+ levels of deep football knowledge.
-- NO SPOILERS in the question text.
+ARTICLE STRUCTURE:
+1. MANDATORY H2 HEADINGS: Every main section MUST start with a ## heading. Use descriptive, epic headings (e.g., ## ملحمة المواجهة المنتظرة).
+2. BOLD LEAD-INS: Start EVERY paragraph with a **Bold Lead-in** summarizing the tactical or narrative point.
+3. ARTICLE LENGTH: Articles must be substantial and detailed. Minimum 1200-1500 words of deep analysis.
+4. FACT BOX: The factBox section must contain 5-7 verified, high-impact facts.
+5. QUIZ RULES: 
+   - LEAGUES: For quizzes, ONLY use teams and players from the English Premier League, Spanish La Liga, Italian Serie A, German Bundesliga, French Ligue 1, Portuguese Primeira Liga, and Dutch Eredivisie.
+   - IMAGE URLS: For visual quizzes (Guess the Logo/Player), the 'imageUrl' field is MANDATORY. Strictly use the 'LOGO_URL' provided in the 'OFFICIAL VERIFIED DATA' above. Do not leave it empty.
+   - NO SPOILERS: If the quiz is visual (Guess the Player/Logo), the 'question' field MUST NOT contain any descriptive text about the team or player. Keep it short: 'من هذا؟' or 'خمن الفريق'.
+   - DEPTH: Provide 12 or more questions for every quiz.
+   - VARIETY: Use a mix of famous and slightly challenging teams/players from the specified leagues.
 
 Return the result as clean JSON matching the schema.`;
 

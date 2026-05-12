@@ -50,7 +50,7 @@ export default function NewArticlePage() {
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('File is too large (max 10MB)');
+      setError('حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)');
       return;
     }
 
@@ -115,7 +115,7 @@ export default function NewArticlePage() {
         </Link>
         <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase mt-6">توليد الذكاء الكروي</h1>
         <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-2">
-          حول البيانات المرئية أو النصية إلى تقارير تكتيكية احترافية
+          حول البيانات المرئية أو النصية إلى تقارير رياضية شاملة
         </p>
       </div>
 
@@ -202,9 +202,9 @@ export default function NewArticlePage() {
           <button
             onClick={runPipeline}
             disabled={running || (!postContent.trim() && !postUrl.trim() && !imageBase64)}
-            className="w-full bg-lime text-black py-5 font-black uppercase tracking-[0.3em] text-sm hover:bg-white transition-all disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(179,212,0,0.2)] active:scale-95"
+            className="w-full bg-lime text-black py-5 font-black uppercase tracking-[0.3em] text-sm hover:bg-white transition-all disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(179,212,0,0.2)]"
           >
-            {running ? 'جاري معالجة المعلومات...' : 'توليد المقال التكتيكي'}
+            {running ? 'جاري معالجة المعلومات...' : 'توليد المقال والحقائق'}
           </button>
         </div>
 

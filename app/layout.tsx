@@ -39,25 +39,32 @@ export const metadata: Metadata = {
 };
 
 async function getGlobalScripts(retries = 5) {
-  
   for (let i = 0; i < retries; i++) {
     try {
       const rows = await db.select().from(settings);
+      const scripts: string[] = [];
+      
       const headScript = rows.find(r => r.key === 'ad_global_head');
       const headEnabled = rows.find(r => r.key === 'ad_global_head_enabled');
-      
       if (headEnabled?.value === 'true' && headScript?.value) {
-        return headScript.value;
+        scripts.push(headScript.value);
       }
-      return null;
+
+      const socialBarScript = rows.find(r => r.key === 'ad_social_bar');
+      const socialBarEnabled = rows.find(r => r.key === 'ad_social_bar_enabled');
+      if (socialBarEnabled?.value === 'true' && socialBarScript?.value) {
+        scripts.push(socialBarScript.value);
+      }
+      
+      return scripts;
     } catch (err) {
       console.error(`[Layout] getGlobalScripts error (attempt ${i + 1}/${retries}):`, err);
-      if (i === retries - 1) return null;
+      if (i === retries - 1) return [];
       const delay = Math.min(1000 * Math.pow(2, i), 5000);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  return null;
+  return [];
 }
 
 export default async function RootLayout({
@@ -65,7 +72,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const globalHeadScript = await getGlobalScripts();
+  const globalHeadScripts = await getGlobalScripts();
 
   return (
     <html
@@ -76,7 +83,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-black text-white">
         <NextTopLoader 
-          color="#b3d400"
+          color="#9EFF00"
           initialPosition={0.08}
           crawlSpeed={200}
           height={3}
@@ -84,10 +91,12 @@ export default async function RootLayout({
           showSpinner={false}
           easing="ease"
           speed={200}
-          shadow="0 0 10px #b3d400,0 0 5px #b3d400"
+          shadow="0 0 10px #9EFF00,0 0 5px #9EFF00"
         />
         {/* Global Adsterra Scripts (Pop-unders, Social Bars) */}
-        {/* {globalHeadScript && <AdScriptInjector code={globalHeadScript} />} */}
+        {globalHeadScripts.map((script, idx) => (
+          <AdScriptInjector key={idx} code={script} />
+        ))}
         
         <Header />
         <main className="flex-1">{children}</main>
