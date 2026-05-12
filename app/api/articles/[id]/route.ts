@@ -4,7 +4,6 @@ import { articles, sources } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import slugify from 'slugify';
 
-export const runtime = 'edge';
 
 export const dynamic = 'force-dynamic';
 

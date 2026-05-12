@@ -5,7 +5,6 @@ import { articles as articlesTable } from '@/lib/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { ArticleCard } from '@/components/ArticleCard';
 
-export const runtime = 'edge';
 
 export const revalidate = 60; // Revalidate every minute
 

@@ -7,7 +7,6 @@ import { eq } from 'drizzle-orm';
 import { ArticleRenderer } from '@/components/ArticleRenderer';
 import { AdComponent } from '@/components/AdComponent';
 
-export const runtime = 'edge';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 

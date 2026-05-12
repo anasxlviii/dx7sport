@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getEventDetails } from '@/lib/pipeline/sportsdb';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-export const runtime = 'edge';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
