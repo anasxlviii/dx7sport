@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 
 const images = [
-  '/hero/stadium.png',
-  '/hero/player.png',
-  '/hero/celebration.png'
+  '/hero/stadium.webp',
+  '/hero/player.webp',
+  '/hero/celebration.webp'
 ];
 
 export function HeroSlideshow() {

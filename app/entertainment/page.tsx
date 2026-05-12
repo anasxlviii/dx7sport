@@ -10,7 +10,7 @@ const FEATURED_GAMES = [
     title: 'تحدي شعارات الأندية العالمية',
     description: '20 مستوى من الإثارة! هل يمكنك التعرف على أقوى أندية العالم والعرب من شعاراتهم؟',
     category: 'Logo Quiz',
-    image: '/hero/entertainment_hub.png',
+    image: '/hero/entertainment_hub.webp',
     data: {
       type: 'multiple_choice',
       questions: [
@@ -28,7 +28,7 @@ const FEATURED_GAMES = [
         { question: 'ما هو هذا الفريق؟', options: ['الهلال', 'النصر', 'الاتحاد', 'الأهلي'], correctAnswer: 'الهلال', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/p0p6qj1553805728.png' },
         { question: 'ما هو هذا الفريق؟', options: ['النصر', 'الهلال', 'الشباب', 'الاتفاق'], correctAnswer: 'النصر', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/dfv3h91553805963.png' },
         { question: 'ما هو هذا الفريق؟', options: ['الأهلي المصري', 'الزمالك', 'بيراميدز', 'فيوتشر'], correctAnswer: 'الأهلي المصري', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/6eia2m1601053158.png' },
-        { question: 'ما هو هذا الفريق؟', options: ['الرجاء الرياضي', 'الوداد الرياضي', 'الجيش الملكي', 'نهضة بركان'], correctAnswer: 'الرجاء الرياضي', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/vqupxu1465831005.png' },
+        { question: 'ما هو this الفريق؟', options: ['الرجاء الرياضي', 'الوداد الرياضي', 'الجيش الملكي', 'نهضة بركان'], correctAnswer: 'الرجاء الرياضي', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/vqupxu1465831005.png' },
         { question: 'ما هو هذا الفريق؟', options: ['الوداد الرياضي', 'الرجاء الرياضي', 'المغرب التطواني', 'اتحاد طنجة'], correctAnswer: 'الوداد الرياضي', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/quuuxy1465831093.png' },
         { question: 'ما هو هذا الفريق؟', options: ['دورتموند', 'بايرن ميونخ', 'مونشنغلادباخ', 'شالكه'], correctAnswer: 'دورتموند', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/7f8f0f1548784437.png' },
         { question: 'ما هو هذا الفريق؟', options: ['أتلتيكو مدريد', 'ريال مدريد', 'إشبيلية', 'فالنسيا'], correctAnswer: 'أتلتيكو مدريد', imageUrl: 'https://www.thesportsdb.com/images/media/team/badge/e7tptf1548784218.png' },
@@ -62,7 +62,7 @@ export default async function EntertainmentPage() {
         title: q.title,
         description: q.excerpt || 'تحدي جديد من إنتاج الذكاء الاصطناعي لـ DX7 Sport',
         category: 'AI Challenge',
-        image: q.featuredImage || '/hero/entertainment_hub.png',
+        image: q.featuredImage || '/hero/entertainment_hub.webp',
         data: quizData
       };
     }).filter(q => q.data) // Only show if valid data exists
@@ -73,7 +73,7 @@ export default async function EntertainmentPage() {
       {/* Hero Section */}
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden border-b border-zinc-900">
          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black z-10" />
-         <div className="absolute inset-0 opacity-40 bg-[url('/hero/entertainment_hub.png')] bg-cover bg-center animate-pulse-slow" />
+         <div className="absolute inset-0 opacity-40 bg-[url('/hero/entertainment_hub.webp')] bg-cover bg-center animate-pulse-slow" />
          
          <div className="relative z-20 text-center px-4">
             <h2 className="text-xs font-black text-lime uppercase tracking-[0.6em] mb-6 animate-in slide-in-from-top duration-1000">DX7 ENTERTAINMENT HUB</h2>
