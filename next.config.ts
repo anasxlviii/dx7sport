@@ -33,6 +33,9 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'r2.thesportsdb.com' },
     ],
   },
+  serverExternalPackages: ['postgres'],
 };
+
+
 
 export default nextConfig;
