@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runPipeline } from '@/lib/pipeline/pipeline';
 
-export const runtime = 'edge';
+
 
 export async function POST(request: NextRequest) {
   try {

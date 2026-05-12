@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchImages } from '@/lib/pipeline/image-search';
 
-export const runtime = 'edge';
+
 
 export const dynamic = 'force-dynamic';
 

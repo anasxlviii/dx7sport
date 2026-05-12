@@ -3,7 +3,7 @@ import { db } from '@/lib/db/db';
 import { articles } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 
-export const runtime = 'edge';
+
 
 
 // FEATURED / STATIC GAMES
