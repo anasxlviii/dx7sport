@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 // API route for managing multiple images per article
 // GET /api/article-images/[id] — list images
 // POST /api/article-images/[id] — add image (URL or upload)

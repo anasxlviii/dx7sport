@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/db';
 import { settings } from '@/lib/db/schema';

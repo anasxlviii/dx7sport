@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 // API route: POST /api/upload-image
 // Accepts a file upload and returns the Vercel Blob URL (or base64 fallback)
 import { NextRequest, NextResponse } from 'next/server';

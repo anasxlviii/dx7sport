@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 import { getEventDetails } from '@/lib/pipeline/sportsdb';
 import { GoogleGenerativeAI } from '@google/generative-ai';

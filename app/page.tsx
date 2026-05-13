@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import Link from 'next/link';
 import { db } from '@/lib/db/db';
 import { articles as articlesTable, settings } from '@/lib/db/schema';
