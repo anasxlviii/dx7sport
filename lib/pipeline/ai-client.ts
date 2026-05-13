@@ -1,5 +1,4 @@
 import { GoogleGenAI } from '@google/genai';
-import http from 'node:http';
 
 // --- Gemini Configuration ---
 function getGeminiKeys(): string[] {
@@ -36,8 +35,7 @@ function getAvailableGeminiKeyIndex(startIndex: number): number {
 }
 
 /**
- * Unified execution wrapper for AI operations.
- * Priority: Gemini (key rotation across 5 keys) -> Ollama/Gemma 4 (local fallback)
+ * Unified execution wrapper for AI operations using Gemini with 5-key rotation.
  */
 export async function executeWithAI<T>(
   options: {
@@ -94,45 +92,7 @@ export async function executeWithAI<T>(
     }
   }
 
-  // 2. Fallback: Local Ollama (gemma2:2b — uses node:http to avoid undici 10s headers timeout)
-  try {
-    const body = JSON.stringify({
-      model: 'gemma2:2b',
-      messages: [
-        { role: 'system', content: options.schema
-          ? `${options.systemPrompt}\n\nIMPORTANT: You must return a JSON object that strictly follows this schema:\n${JSON.stringify(options.schema, null, 2)}`
-          : options.systemPrompt },
-        { role: 'user', content: options.userPrompt },
-      ],
-      stream: false,
-      format: options.schema ? 'json' : undefined,
-      options: { temperature: options.temperature ?? 0.4, num_predict: 4096 },
-    });
-    const data = await new Promise<any>((resolve, reject) => {
-      const req = http.request('http://localhost:11434/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-        timeout: 300000,
-      }, (res) => {
-        let raw = '';
-        res.on('data', (chunk: Buffer) => raw += chunk.toString());
-        res.on('end', () => {
-          try { resolve(JSON.parse(raw)); } catch { reject(new Error('Invalid JSON from Ollama')); }
-        });
-      });
-      req.on('timeout', () => { req.destroy(); reject(new Error('Ollama request timed out')); });
-      req.on('error', reject);
-      req.write(body);
-      req.end();
-    });
-    const content = data?.message?.content || data?.response || '{}';
-    console.log('[AI Client] Using local Ollama (gemma2:2b)');
-    return (options.schema ? JSON.parse(content) : content) as T;
-  } catch (err: any) {
-    console.warn('[AI Client] Ollama/gemma2:2b fallback failed:', err.message);
-  }
-
-  throw new Error('[AI Client] All AI providers exhausted or failed.');
+  throw new Error('[AI Client] All Gemini keys exhausted (rate-limited).');
 }
 
 // Legacy support for manual Gemini operations if needed

@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, content, excerpt, category, status = 'draft' } = body;
+    const { title, content, excerpt, category, status = 'draft', featuredImage } = body;
 
     if (!title || !content) {
       return NextResponse.json({ error: 'title and content are required' }, { status: 400 });
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     const [article] = await db
       .insert(articles)
-      .values({ title, slug, content, excerpt, status, category: category || 'news' })
+      .values({ title, slug, content, excerpt, status, category: category || 'news', featuredImage: featuredImage || null })
       .returning();
 
     return NextResponse.json({ article }, { status: 201 });
