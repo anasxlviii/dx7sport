@@ -18,7 +18,7 @@ async function migrate() {
       updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
   `;
-  console.log('✅ Done');
+  console.log('Done');
   await client.end();
 }
 

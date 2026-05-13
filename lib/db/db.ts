@@ -3,11 +3,6 @@ import postgres from 'postgres';
 import * as schema from './schema';
 import { cache } from 'react';
 
-/**
- * Optimized Supabase Connection for Vercel.
- * Using the Supabase Transaction Pooler (port 6543) for high-traffic stability.
- */
-
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
@@ -16,7 +11,6 @@ if (!connectionString) {
 
 const pooledConnectionString = connectionString ? connectionString.replace(':5432', ':6543') : '';
 
-// Create client ONLY if we have a connection string
 const client = pooledConnectionString 
   ? postgres(pooledConnectionString, { 
       max: 10,
@@ -26,10 +20,8 @@ const client = pooledConnectionString
     })
   : null;
 
-// Create drizzle instance only if client is valid
 export const db = client ? drizzle(client, { schema }) : null;
 
-// Cached query to prevent multiple DB hits for settings in a single request
 export const getCachedSettings = cache(async () => {
   if (!db) return {};
   try {
