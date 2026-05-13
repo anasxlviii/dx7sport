@@ -1,6 +1,4 @@
 import { GoogleGenAI } from '@google/genai';
-import Groq from 'groq-sdk';
-import OpenAI from 'openai';
 
 // --- Gemini Configuration ---
 function getGeminiKeys(): string[] {
@@ -36,33 +34,9 @@ function getAvailableGeminiKeyIndex(startIndex: number): number {
   return earliestIdx;
 }
 
-// --- Provider Clients ---
-let groqInstance: Groq | null = null;
-function getGroq() {
-  if (!groqInstance && process.env.GROQ_API_KEY) {
-    groqInstance = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  }
-  return groqInstance;
-}
-
-let openRouterInstance: OpenAI | null = null;
-function getOpenRouter() {
-  if (!openRouterInstance && process.env.OPENROUTER_API_KEY) {
-    openRouterInstance = new OpenAI({ 
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: 'https://openrouter.ai/api/v1',
-      defaultHeaders: {
-        'HTTP-Referer': 'https://dx7sport.com',
-        'X-Title': 'DX7 Sport',
-      }
-    });
-  }
-  return openRouterInstance;
-}
-
 /**
  * Unified execution wrapper for AI operations.
- * Priority: Groq -> OpenRouter -> Gemini (Rotation)
+ * Priority: Gemini (key rotation across 5 keys) -> Ollama/Gemma 4 (local fallback)
  */
 export async function executeWithAI<T>(
   options: {
@@ -70,79 +44,23 @@ export async function executeWithAI<T>(
     userPrompt: string;
     schema?: any;
     temperature?: number;
-    provider?: 'gemini' | 'groq' | 'openrouter';
+    provider?: 'gemini';
   }
 ): Promise<T> {
-  const preferredProvider = options.provider || process.env.PREFERRED_AI_PROVIDER || 'groq';
-  const groq = getGroq();
-  const openRouter = getOpenRouter();
-
-  // 1. Try Groq (Fastest, High Rate Limits)
-  if ((preferredProvider === 'groq' || !geminiKeys.length) && groq) {
-    try {
-      console.log('[AI Client] Using Groq (Llama 3.1 70B)');
-      const systemWithSchema = options.schema 
-        ? `${options.systemPrompt}\n\nIMPORTANT: You must return a JSON object that strictly follows this schema:\n${JSON.stringify(options.schema, null, 2)}`
-        : options.systemPrompt;
-
-      const completion = await groq.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemWithSchema },
-          { role: 'user', content: options.userPrompt }
-        ],
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 4096,
-        temperature: options.temperature ?? 0.4,
-        response_format: options.schema ? { type: 'json_object' } : undefined,
-      });
-      const content = completion.choices[0]?.message?.content || '{}';
-      return JSON.parse(content) as T;
-    } catch (error: any) {
-      console.warn('[AI Client] Groq failed, falling back...', error.message);
-    }
-  }
-
-  // 2. Try OpenRouter (Near-Unlimited, Paid Fallback)
-  if (openRouter && (preferredProvider === 'openrouter' || preferredProvider === 'groq')) {
-    try {
-      console.log('[AI Client] Using OpenRouter (Gemini 2.0 Flash / Pro)');
-      const systemWithSchema = options.schema 
-        ? `${options.systemPrompt}\n\nIMPORTANT: You must return a JSON object that strictly follows this schema:\n${JSON.stringify(options.schema, null, 2)}`
-        : options.systemPrompt;
-
-      const completion = await openRouter.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemWithSchema },
-          { role: 'user', content: options.userPrompt }
-        ],
-        model: 'google/gemini-2.0-flash-001', // Or 'meta-llama/llama-3.1-405b-instruct'
-        max_tokens: 8192,
-        temperature: options.temperature ?? 0.4,
-        response_format: options.schema ? { type: 'json_object' } : undefined,
-      });
-      const content = completion.choices[0]?.message?.content || '{}';
-      return JSON.parse(content) as T;
-    } catch (error: any) {
-      console.warn('[AI Client] OpenRouter failed, falling back...', error.message);
-    }
-  }
-
-  // 3. Fallback to Gemini Rotation (Free Tier)
+  // 1. Try Gemini with key rotation (5 keys in rotation for quota management)
   if (geminiKeys.length > 0) {
     let currentKeyIndex = getAvailableGeminiKeyIndex(0);
     let attempts = 0;
-    const maxAttempts = geminiKeys.length * 2;
+    const maxAttempts = geminiKeys.length * 3;
 
     while (attempts < maxAttempts) {
       const key = geminiKeys[currentKeyIndex];
       const client = new GoogleGenAI({ apiKey: key });
 
       try {
-        console.log(`[AI Client] Using Gemini Free Tier (Key ...${key.slice(-4)})`);
-        
-        // RATE LIMIT PROTECTION: Mandatory 4-second delay for Gemini Free Tier (15 RPM)
-        // This ensures the "Ghost Reporter" stays within limits during backend runs.
-        await new Promise(resolve => setTimeout(resolve, 4000));
+        console.log(`[AI Client] Using Gemini (Key ...${key.slice(-4)})`);
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         const result = await client.models.generateContent({
           model: 'gemini-2.0-flash',
@@ -152,7 +70,6 @@ export async function executeWithAI<T>(
             responseSchema: options.schema,
             temperature: options.temperature ?? 0.4,
             maxOutputTokens: 8192,
-            // Lower safety thresholds to prevent blocks on sports news (injuries, rivalry, etc.)
             safetySettings: [
               { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
               { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
@@ -167,6 +84,7 @@ export async function executeWithAI<T>(
       } catch (error: any) {
         const status = error?.status ?? error?.httpStatus;
         if (status === 429 || status === 503) {
+          console.warn(`[AI Client] Gemini key ...${key.slice(-4)} rate-limited, rotating...`);
           keyCooldowns[key] = Date.now() + COOLDOWN_MS;
           attempts++;
           currentKeyIndex = getAvailableGeminiKeyIndex((currentKeyIndex + 1) % geminiKeys.length);
@@ -177,8 +95,7 @@ export async function executeWithAI<T>(
     }
   }
 
-  // 4. Last resort: Local Ollama (Gemma 4 on same VPS — no performance cost since
-  //    this only runs when all cloud providers failed)
+  // 2. Fallback: Local Ollama (Gemma 4 on same VPS)
   try {
     const ollamaRes = await fetch('http://localhost:11434/api/chat', {
       method: 'POST',
