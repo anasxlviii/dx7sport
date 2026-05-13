@@ -112,7 +112,7 @@ export async function executeWithAI<T>(
       const req = http.request('http://localhost:11434/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-        timeout: 120000,
+        timeout: 300000,
       }, (res) => {
         let raw = '';
         res.on('data', (chunk: Buffer) => raw += chunk.toString());
