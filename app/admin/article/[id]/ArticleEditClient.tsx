@@ -22,6 +22,11 @@ export default function ArticleEditClient({ id }: { id: string }) {
   const [preview, setPreview] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
+  // Analysis agent state
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+
   // Image manager state
   const [images, setImages] = useState<MediaImage[]>([]);
   const [imgLoading, setImgLoading] = useState(false);
@@ -128,6 +133,23 @@ export default function ArticleEditClient({ id }: { id: string }) {
       const data = await res.json();
       setSearchResults(data.results || []);
     } finally { setSearching(false); }
+  }
+
+  async function analyzeArticle() {
+    if (!article) return;
+    setAnalyzing(true);
+    setAnalysis(null);
+    setShowAnalysis(true);
+    try {
+      const res = await fetch('/api/analyze-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: article.content, title: article.title }),
+      });
+      const data = await res.json();
+      setAnalysis(data.analysis || 'فشل التحليل');
+    } catch { setAnalysis('فشل الاتصال بخادم التحليل'); }
+    finally { setAnalyzing(false); }
   }
 
   if (loading) return (
@@ -306,6 +328,39 @@ export default function ArticleEditClient({ id }: { id: string }) {
                   <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest block mb-1">الرابط</span>
                   <span className="font-mono text-xs text-gray-400 bg-black p-2 border border-border-subtle block break-all" dir="ltr">/article/{article.slug}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* AI Article Analysis Agent */}
+            <div className="dxt-card bg-dark-surface overflow-hidden">
+              <div className="p-5 border-b border-border-subtle flex items-center justify-between">
+                <h3 className="text-xs font-black text-lime uppercase tracking-[0.2em]">تحليل ذكي للمقال</h3>
+              </div>
+              <div className="p-5">
+                <button onClick={analyzeArticle} disabled={analyzing}
+                  className="w-full py-3 bg-lime text-black text-[11px] font-black uppercase tracking-widest hover:bg-lime/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                  {analyzing ? <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> جاري التحليل...</> : '🧠 تحليل المقال'}
+                </button>
+                {showAnalysis && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">نتيجة التحليل</span>
+                      <button onClick={() => setShowAnalysis(false)} className="text-gray-600 hover:text-white text-xs">✕</button>
+                    </div>
+                    <div className="bg-black border border-border-subtle p-4 max-h-96 overflow-y-auto">
+                      {analysis ? (
+                        <div className="prose prose-invert prose-sm text-gray-300 whitespace-pre-wrap leading-relaxed text-xs [&_strong]:text-lime [&_h3]:text-white [&_h3]:text-sm [&_h3]:font-black [&_h3]:mt-4 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pr-4 [&_li]:mb-1">
+                          {analysis}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 text-gray-600 text-xs">
+                          <span className="w-4 h-4 border-2 border-lime border-t-transparent rounded-full animate-spin" />
+                          جاري التحليل...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
