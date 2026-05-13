@@ -8,13 +8,9 @@ import { settings } from '@/lib/db/schema';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
 import NextTopLoader from 'nextjs-toploader';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-
+export const revalidate = 3600; // Global default revalidation: 1 hour
 
 const cairo = Cairo({
-
   variable: "--font-cairo",
   subsets: ["arabic", "latin"],
 });
@@ -48,40 +44,18 @@ export const metadata: Metadata = {
 async function getGlobalScripts() {
   const settingsMap = await getCachedSettings();
   const scripts: string[] = [];
+  
   if (settingsMap['ad_global_head_enabled'] === 'true' && settingsMap['ad_global_head']) {
     scripts.push(settingsMap['ad_global_head']);
   }
   if (settingsMap['ad_global_body_enabled'] === 'true' && settingsMap['ad_global_body']) {
     scripts.push(settingsMap['ad_global_body']);
   }
-  return scripts;
-}
-  for (let i = 0; i < retries; i++) {
-    try {
-      const rows = await db.select().from(settings);
-      const scripts: string[] = [];
-      
-      const headScript = rows.find(r => r.key === 'ad_global_head');
-      const headEnabled = rows.find(r => r.key === 'ad_global_head_enabled');
-      if (headEnabled?.value === 'true' && headScript?.value) {
-        scripts.push(headScript.value);
-      }
-
-      const socialBarScript = rows.find(r => r.key === 'ad_social_bar');
-      const socialBarEnabled = rows.find(r => r.key === 'ad_social_bar_enabled');
-      if (socialBarEnabled?.value === 'true' && socialBarScript?.value) {
-        scripts.push(socialBarScript.value);
-      }
-      
-      return scripts;
-    } catch (err) {
-      console.error(`[Layout] getGlobalScripts error (attempt ${i + 1}/${retries}):`, err);
-      if (i === retries - 1) return [];
-      const delay = Math.min(1000 * Math.pow(2, i), 5000);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
+  if (settingsMap['ad_social_bar_enabled'] === 'true' && settingsMap['ad_social_bar']) {
+    scripts.push(settingsMap['ad_social_bar']);
   }
-  return [];
+  
+  return scripts;
 }
 
 export default async function RootLayout({
@@ -121,7 +95,7 @@ export default async function RootLayout({
         <footer className="bg-zinc-950 border-t border-zinc-900 py-12">
           <div className="max-w-7xl mx-auto px-4 text-center">
             <div className="flex justify-center mb-6">
-              <img src="/logo.png?v=4" alt="DX7 SPORT" className="h-10 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity" />
+              <img src="/logo.webp?v=5" alt="DX7 SPORT" className="h-10 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity" />
             </div>
             <p className="text-[10px] font-bold text-gray-600 uppercase tracking-[0.3em]">
               جميع الحقوق محفوظة © {new Date().getFullYear()} DX7 SPORT
