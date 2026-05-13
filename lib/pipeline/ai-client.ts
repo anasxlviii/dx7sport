@@ -60,8 +60,6 @@ export async function executeWithAI<T>(
       try {
         console.log(`[AI Client] Using Gemini (Key ...${key.slice(-4)})`);
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
         const result = await client.models.generateContent({
           model: 'gemini-2.0-flash',
           contents: [{ role: 'user', parts: [{ text: `${options.systemPrompt}\n\n${options.userPrompt}` }] }],
@@ -112,7 +110,7 @@ export async function executeWithAI<T>(
         format: options.schema ? 'json' : undefined,
         options: { temperature: options.temperature ?? 0.4, num_predict: 4096 },
       }),
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(120000),
     });
     if (ollamaRes.ok) {
       const data = await ollamaRes.json();
