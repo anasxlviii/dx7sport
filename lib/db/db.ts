@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { cache } from 'react';
 
 /**
  * Optimized Supabase Connection for Vercel.
@@ -28,3 +29,16 @@ const client = pooledConnectionString
 // Create drizzle instance only if client is valid
 export const db = client ? drizzle(client, { schema }) : null;
 
+// Cached query to prevent multiple DB hits for settings in a single request
+export const getCachedSettings = cache(async () => {
+  if (!db) return {};
+  try {
+    const allSettings = await db.select().from(schema.settings);
+    const settingsMap: Record<string, string> = {};
+    allSettings.forEach(s => settingsMap[s.key] = s.value || '');
+    return settingsMap;
+  } catch (err) {
+    console.error('[db] getCachedSettings error:', err);
+    return {};
+  }
+});

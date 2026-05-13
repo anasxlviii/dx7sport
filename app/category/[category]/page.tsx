@@ -7,8 +7,7 @@ import { eq, desc, and } from 'drizzle-orm';
 import { ArticleCard } from '@/components/ArticleCard';
 
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 600;
 
 const CATEGORIES = {
   news: 'أخبار عالمية',
@@ -24,8 +23,7 @@ async function getArticlesByCategory(category: string, retries = 5) {
   for (let i = 0; i < retries; i++) {
     try {
       return await db
-        .select()
-        .from(articlesTable)
+        .select({ id: articlesTable.id, title: articlesTable.title, slug: articlesTable.slug, excerpt: articlesTable.excerpt, featuredImage: articlesTable.featuredImage, category: articlesTable.category, status: articlesTable.status, publishedAt: articlesTable.publishedAt, createdAt: articlesTable.createdAt }).from(articlesTable)
         .where(
           and(
             eq(articlesTable.status, 'published'),

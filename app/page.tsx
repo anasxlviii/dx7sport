@@ -11,15 +11,14 @@ import { getTopLeaguesScores } from '@/lib/pipeline/sportsdb';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
 
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 300;
 
 async function getData(retries = 5) {
   if (!db) return { allArticles: [], settingsMap: {}, scores: [] };
   for (let i = 0; i < retries; i++) {
     try {
       const [allArticles, allSettings, scores] = await Promise.all([
-        db.select().from(articlesTable).where(eq(articlesTable.status, 'published')).orderBy(desc(articlesTable.id)).limit(40),
+        db.select({ id: articlesTable.id, title: articlesTable.title, slug: articlesTable.slug, excerpt: articlesTable.excerpt, featuredImage: articlesTable.featuredImage, category: articlesTable.category, status: articlesTable.status, publishedAt: articlesTable.publishedAt, createdAt: articlesTable.createdAt }).from(articlesTable).where(eq(articlesTable.status, 'published')).orderBy(desc(articlesTable.id)).limit(40),
         db.select().from(settings),
         getTopLeaguesScores()
       ]);

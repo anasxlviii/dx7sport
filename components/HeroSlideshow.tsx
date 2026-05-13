@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 const images = [
   '/hero/stadium.webp',
@@ -27,10 +28,12 @@ export function HeroSlideshow() {
             idx === currentImage ? 'opacity-40' : 'opacity-0'
           }`}
         >
-          <img
+          <Image
             src={img}
             alt="Soccer Background"
-            className="w-full h-full object-cover"
+            fill
+            priority={idx === 0}
+            className="object-cover"
           />
         </div>
       ))}

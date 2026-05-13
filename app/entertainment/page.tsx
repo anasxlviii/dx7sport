@@ -4,8 +4,7 @@ import { db } from '@/lib/db/db';
 import { articles } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 600;
 
 
 

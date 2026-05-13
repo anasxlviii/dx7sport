@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Cairo, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
-import { db } from '@/lib/db/db';
+import { db, getCachedSettings } from '@/lib/db/db';
 import { settings } from '@/lib/db/schema';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
 import NextTopLoader from 'nextjs-toploader';
@@ -29,9 +29,9 @@ export const metadata: Metadata = {
   title: "DX7 SPORT | The Ultimate Football Intel",
   description: "Your autonomous source for researched football intelligence, tactical analysis, and breaking news.",
   icons: {
-    icon: '/favicon.png?v=4',
-    shortcut: '/favicon.png?v=4',
-    apple: '/favicon.png?v=4',
+    icon: '/favicon.webp?v=5',
+    shortcut: '/favicon.webp?v=5',
+    apple: '/favicon.webp?v=5',
   },
   openGraph: {
     type: 'website',
@@ -45,11 +45,17 @@ export const metadata: Metadata = {
   }
 };
 
-async function getGlobalScripts(retries = 5) {
-  if (!db) {
-    console.warn('[Layout] Database not initialized, skipping scripts');
-    return [];
+async function getGlobalScripts() {
+  const settingsMap = await getCachedSettings();
+  const scripts: string[] = [];
+  if (settingsMap['ad_global_head_enabled'] === 'true' && settingsMap['ad_global_head']) {
+    scripts.push(settingsMap['ad_global_head']);
   }
+  if (settingsMap['ad_global_body_enabled'] === 'true' && settingsMap['ad_global_body']) {
+    scripts.push(settingsMap['ad_global_body']);
+  }
+  return scripts;
+}
   for (let i = 0; i < retries; i++) {
     try {
       const rows = await db.select().from(settings);

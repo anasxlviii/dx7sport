@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function ArticleCard({ article, compact = false }: { article: any, compact?: boolean }) {
   const categoryMap: Record<string, string> = {
@@ -16,10 +17,13 @@ export function ArticleCard({ article, compact = false }: { article: any, compac
       {!compact && (
         <div className="w-full h-56 overflow-hidden relative">
           <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors z-10" />
-          <img 
-            src={article.featuredImage || '/hero/default_card.png'} 
+          <Image 
+            src={article.featuredImage || '/hero/default_card.webp'} 
             alt={article.title} 
-            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-1000"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transform group-hover:scale-110 transition-transform duration-1000"
+            unoptimized={!article.featuredImage?.includes('cloudinary') && !article.featuredImage?.includes('unsplash')} // Use unoptimized for unknown sources to avoid build errors, but optimized for known ones
           />
           <div className="absolute top-4 right-4 z-20">
              <span className="bg-black/60 backdrop-blur-md border border-lime/30 text-lime text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1">

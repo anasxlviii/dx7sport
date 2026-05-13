@@ -9,8 +9,7 @@ import { ArticleRenderer } from '@/components/ArticleRenderer';
 import { AdComponent } from '@/components/AdComponent';
 
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 async function getArticle(slug: string, retries = 5) {
   if (!db) return null;

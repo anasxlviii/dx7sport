@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const maxRetries = 2;
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const baseQuery = db.select().from(articles);
+        const baseQuery = db.select({ id: articles.id, title: articles.title, slug: articles.slug, excerpt: articles.excerpt, featuredImage: articles.featuredImage, category: articles.category, status: articles.status, publishedAt: articles.publishedAt, createdAt: articles.createdAt }).from(articles);
         const filteredQuery = whereClause ? baseQuery.where(whereClause) : baseQuery;
 
         const allArticles = await filteredQuery
