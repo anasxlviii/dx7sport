@@ -1,4 +1,3 @@
-export const runtime = 'edge';
 import { NextRequest, NextResponse } from 'next/server';
 import { searchImages } from '@/lib/pipeline/image-search';
 

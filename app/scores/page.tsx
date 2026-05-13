@@ -1,4 +1,3 @@
-export const runtime = 'edge';
 import { getTopLeaguesScores } from '@/lib/pipeline/sportsdb';
 import { ScoreSection } from '@/components/ScoreSection';
 

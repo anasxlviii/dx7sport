@@ -1,4 +1,3 @@
-export const runtime = 'edge';
 import { NextRequest, NextResponse } from 'next/server';
 import { executeWithGemini } from '@/lib/pipeline/gemini-client';
 import { runPipeline } from '@/lib/pipeline/pipeline';
