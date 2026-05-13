@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const cwd = process.cwd();
     const commands = [
       { cmd: 'git pull origin master', label: 'git pull' },
-      { cmd: 'npm install', label: 'npm install' },
+      { cmd: 'pnpm install', label: 'pnpm install' },
       { cmd: 'npm run build', label: 'npm run build' },
       { cmd: 'pm2 restart dx7sport', label: 'pm2 restart' },
     ];
