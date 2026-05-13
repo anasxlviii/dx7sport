@@ -85,6 +85,13 @@ IF THE INPUT IS AN IMAGE: Identify the players, teams, or match event depicted a
       temperature: 0.2,
     });
 
+    // Sanitize all text fields
+    const clean = (t: string) => t.replace(/[\u0660-\u0669\u06F0-\u06F9\u0966-\u096F\u09E6-\u09EF\u0E50-\u0E59\u1040-\u1049]/g, ch => ({'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'})[ch]||ch).replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF]/g, '');
+    result.title = clean(result.title);
+    result.summary = clean(result.summary);
+    result.keyQuestions = result.keyQuestions.map(clean);
+    result.searchQueries = result.searchQueries.map(clean);
+
     return result;
   } catch (error) {
     console.error('Error extracting topic:', error);

@@ -4,14 +4,33 @@ import { duckduckgoSearch } from './deep-search';
 import { executeWithAI } from './ai-client';
 
 /**
- * Sanitizes AI-generated article content:
- * 1. Converts literal \n escape sequences to real newlines
- * 2. Ensures markdown headings (##, ###) have blank lines before/after them
- * 3. Removes stray backslash artifacts
- * 4. Replaces Arabic/Indian numerals with Western digits (1234567890)
- * 5. Strips any Chinese, Korean, or Japanese characters
- * 6. Normalizes team names
+ * Cleans any text: replaces non-Western numerals with 0-9, strips CJK chars.
+ * Used on ALL text fields coming from the AI.
  */
+function cleanText(text: string): string {
+  // Replace ALL non-Western numeral systems with Western digits (0-9)
+  // Arabic-Indic (used in Arabic): ٠١٢٣٤٥٦٧٨٩
+  // Eastern Arabic-Indic (used in Persian/Urdu): ۰۱۲۳۴۵۶۷۸۹
+  // Devanagari (used in Hindi): ०१२३४५६७८९
+  // Bengali: ০১২৩৪৫৬৭৮৯
+  // Thai: ๐๑๒๓๔๕๖๗๘๙
+  // Myanmar: ၀၁၂၃၄၅၆၇၈၉
+  const numeralMap: Record<string, string> = {
+    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+    '०': '0', '१': '1', '२': '2', '३': '3', '४': '4', '५': '5', '६': '6', '७': '7', '८': '8', '९': '9',
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+    '๐': '0', '๑': '1', '๒': '2', '๓': '3', '๔': '4', '๕': '5', '๖': '6', '๗': '7', '๘': '8', '๙': '9',
+    '၀': '0', '၁': '1', '၂': '2', '၃': '3', '၄': '4', '၅': '5', '၆': '6', '၇': '7', '၈': '8', '၉': '9',
+  };
+  let result = text.replace(/[\u0660-\u0669\u06F0-\u06F9\u0966-\u096F\u09E6-\u09EF\u0E50-\u0E59\u1040-\u1049]/g, ch => numeralMap[ch] || ch);
+
+  // Strip CJK (Chinese/Japanese/Korean) characters comprehensively
+  result = result.replace(/[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF\u2F800-\u2FA1F\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF\u3000-\u303F\uFF00-\uFFEF\u2E80-\u2EFF\u31F0-\u31FF]/g, '');
+
+  return result;
+}
+
 function sanitizeArticleContent(raw: string): string {
   let text = raw;
 
@@ -30,20 +49,13 @@ function sanitizeArticleContent(raw: string): string {
   // Step 5: Remove any remaining stray backslashes before punctuation
   text = text.replace(/\\([.,،؛:؟!])/g, '$1');
 
-  // Step 6: Replace Arabic/Indian numerals (٠١٢٣٤٥٦٧٨٩) with Western digits (0123456789)
-  const arabicNumerals: Record<string, string> = {
-    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
-    '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
-  };
-  text = text.replace(/[٠١٢٣٤٥٦٧٨٩]/g, ch => arabicNumerals[ch] || ch);
+  // Step 6: Replace non-Western numerals with Western digits
+  text = cleanText(text);
 
-  // Step 7: Strip any CJK (Chinese/Japanese/Korean) characters
-  text = text.replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF]/g, '');
-
-  // Step 8: Post-generation safety cleanup for Arabic football styling
+  // Step 7: Post-generation safety cleanup for Arabic football styling
   text = text.replace(/بارسا|بارصا|بارشا|Barca|Barça/g, 'برشلونة');
   
-  // Step 9: Remove any stray isolated Latin letters
+  // Step 8: Remove any stray isolated Latin letters
   text = text.replace(/\s[a-zA-Z]{1,3}\s/g, ' ');
 
   return text.trim();
@@ -238,7 +250,7 @@ export async function generateArticle(
 
 قواعد اللغة والكتابة الصارمة:
 - اللغة: عربية فصحى راقية جداً، بليغة، وأدبية. استخدم تراكيب لغوية غنية ومتنوعة. تجنب الجمل القصيرة المتقطعة والركيكة. هذا نص رياضي صحفي يقرأه مثقفون.
-- الأرقام: استخدم الأرقام العربية المعيارية (1234567890) حصراً. ممنوع نهائياً استخدام الأرقام الهندية (١٢٣٤٥٦٧٨٩٠) أو كتابة الأرقام ككلمات.
+- الأرقام (صارم جداً): استخدم الأرقام العربية المعيارية (1234567890) حصراً. ممنوع نهائياً استخدام أي شكل آخر من الأرقام: لا الهندية (١٢٣٤٥٦٧٨٩٠)، ولا الفارسية (۰۱۲۳۴۵۶۷۸۹)، ولا كتابة الأرقام ككلمات. كل الأرقام يجب أن تكون (1234567890) فقط.
 - لا تبدأ المقال بعبارات تمهيدية: ابدأ بمشهد قوي أو ملاحظة تكتيكية آسرة. لا تستخدم "في هذا المقال" أو "سنتحدث عن".
 - طول المقال (إلزامي): يجب ألا يقل عن 2500 كلمة. إذا نفدت البيانات، توسع في التاريخ التكتيكي للأندية، أدوار اللاعبين الدقيقة، والتأثير العالمي للحدث.
 - التنسيق (إلزامي):
@@ -291,22 +303,39 @@ ${rawSearchContext ? rawSearchContext : 'لا توجد أخبار حديثة. ا
     if (typeof parsed.content !== 'string') parsed.content = String(parsed.content || '');
     if (typeof parsed.excerpt !== 'string') parsed.excerpt = String(parsed.excerpt || '');
 
-    // Sanitize content
-    if (parsed.content) {
-      parsed.content = sanitizeArticleContent(parsed.content);
-    }
-    if (parsed.excerpt) {
-      parsed.excerpt = parsed.excerpt.replace(/\\n/g, ' ').replace(/\n+/g, ' ').trim();
-    }
-    // Sanitize factBox (Handle cases where AI returns an array instead of string)
+    // Apply cleanText to ALL text fields (kills non-Western numerals + CJK)
+    parsed.title = cleanText(parsed.title);
+
+    parsed.content = sanitizeArticleContent(parsed.content);
+
+    parsed.excerpt = cleanText(parsed.excerpt.replace(/\\n/g, ' ').replace(/\n+/g, ' ').trim());
+
     if (parsed.factBox) {
       if (Array.isArray(parsed.factBox)) {
-        parsed.factBox = (parsed.factBox as string[]).map(item => `• ${item}`).join('\n');
+        parsed.factBox = (parsed.factBox as string[]).map(item => `• ${cleanText(item)}`).join('\n');
       } else if (typeof parsed.factBox === 'string') {
-        parsed.factBox = parsed.factBox.replace(/\\n/g, '\n').trim();
+        parsed.factBox = cleanText(parsed.factBox.replace(/\\n/g, '\n').trim());
       }
     } else {
       parsed.factBox = '';
+    }
+
+    // Sanitize sections
+    if (parsed.sections && Array.isArray(parsed.sections)) {
+      parsed.sections = parsed.sections.map(s => ({
+        heading: cleanText(s.heading || ''),
+        content: cleanText(s.content || ''),
+      }));
+    }
+
+    // Sanitize quizData
+    if (parsed.quizData?.questions) {
+      parsed.quizData.questions = parsed.quizData.questions.map(q => ({
+        question: cleanText(q.question || ''),
+        options: (q.options || []).map(o => cleanText(o)),
+        correctAnswer: cleanText(q.correctAnswer || ''),
+        hint: q.hint ? cleanText(q.hint) : undefined,
+      }));
     }
 
     return parsed;
