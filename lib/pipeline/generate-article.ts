@@ -8,6 +8,9 @@ import { executeWithAI } from './ai-client';
  * 1. Converts literal \n escape sequences to real newlines
  * 2. Ensures markdown headings (##, ###) have blank lines before/after them
  * 3. Removes stray backslash artifacts
+ * 4. Replaces Arabic/Indian numerals with Western digits (1234567890)
+ * 5. Strips any Chinese, Korean, or Japanese characters
+ * 6. Normalizes team names
  */
 function sanitizeArticleContent(raw: string): string {
   let text = raw;
@@ -27,10 +30,20 @@ function sanitizeArticleContent(raw: string): string {
   // Step 5: Remove any remaining stray backslashes before punctuation
   text = text.replace(/\\([.,،؛:؟!])/g, '$1');
 
-  // Step 6: Post-generation safety cleanup for Arabic football styling
+  // Step 6: Replace Arabic/Indian numerals (٠١٢٣٤٥٦٧٨٩) with Western digits (0123456789)
+  const arabicNumerals: Record<string, string> = {
+    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+    '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+  };
+  text = text.replace(/[٠١٢٣٤٥٦٧٨٩]/g, ch => arabicNumerals[ch] || ch);
+
+  // Step 7: Strip any CJK (Chinese/Japanese/Korean) characters
+  text = text.replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF]/g, '');
+
+  // Step 8: Post-generation safety cleanup for Arabic football styling
   text = text.replace(/بارسا|بارصا|بارشا|Barca|Barça/g, 'برشلونة');
   
-  // Remove any stray isolated Latin letters (like the "ca" artifact)
+  // Step 9: Remove any stray isolated Latin letters
   text = text.replace(/\s[a-zA-Z]{1,3}\s/g, ' ');
 
   return text.trim();
@@ -210,56 +223,60 @@ export async function generateArticle(
       topic.searchQueries.length > 0 ? topic.searchQueries[0] : topic.title;
     const rawSearchContext = await duckduckgoSearch(searchQuery);
 
-    const SYSTEM_PROMPT = `You are a legendary football historian and a master tactical analyst for DX7 SPORT. 
+    const SYSTEM_PROMPT = `أنت صحفي كروي أسطوري ومحلل تكتيكي عبقري في DX7 SPORT. تكتب بأسلوب راقٍ يليق بأمجاد الكرة العالمية.
 
-MISSION: Write an EXCESSIVELY long, detailed, and epic football article. There is always more to say—dive deep into history, tactical nuances, psychological factors, and future implications.
+مهمتك: اكتب مقالاً كروياً طويلاً جداً، عميقاً، وملحمياً. هناك دائماً ما يُقال — اغوص في التاريخ، والتفاصيل التكتيكية، والعوامل النفسية، والتأثيرات المستقبلية. اجعل القارئ يعيش التجربة.
 
-CRITICAL SOURCE PRIORITY:
-- ABSOLUTE PRIMARY SOURCE: The following "ORIGINAL SOURCE TEXT" is your foundation.
+ترتيب المصادر (الأهم فالمهم):
+- المصدر الأساسي المُطلق: النص التالي "نص المصدر الأصلي" هو أساس مقالتك.
   ---
-  ${originalSourceText || 'Use the topic summary as your guide.'}
+  ${originalSourceText || 'استخدم ملخص الموضوع كدليل.'}
   ---
-- SUPPLEMENTAL DATA (Use for tactical depth only):
-  * Official Stats: ${factCheckedData || 'N/A'}
-  * Live Web Context: ${rawSearchContext}
+- بيانات إضافية (للتوسع التكتيكي فقط):
+  * إحصائيات رسمية: ${factCheckedData || 'غير متوفرة'}
+  * سياق مباشر من الويب: ${rawSearchContext}
 
-CRITICAL LANGUAGE & STYLING RULES: 
-- SOPHISTICATED FUSHA ARABIC: Use high-level literary Arabic. Avoid simple or repetitive phrasing.
-- NO INTRODUCTIONS/CONCLUSIONS: Start with a powerful scene or tactical observation. No "In this article...".
-- ARTICLE LENGTH (CRITICAL): You must write at least 2000-2500 words. If you run out of data, expand on the tactical history of the clubs, the specific roles of players, and the global impact of the event.
-- FORMATTING (CRITICAL): 
-  * TITLE: The 'title' field should be a masterwork of SEO and epic storytelling.
-  * HEADINGS: Use ## for main sections and ### for sub-sections. Headings must be clear and professional.
-  * BOLDING: Use **bold** ONLY for specific names (players/managers) or key numbers (scores/dates). NEVER bold entire sentences or long lead-ins.
-  * NORMAL TEXT: Paragraphs must be long, cohesive, and primarily normal text. No "Bold Lead-ins".
-- TACTICAL MASTERY: Describe passing lanes, pressing triggers, and defensive transitions in vivid detail.
-- NUMBERS AS WORDS: Write "خمسة" instead of "5" (except for scores like 2-1 and years like 2024).
-- NO SLANG: Always use official names like "برشلونة".
-- TODAY'S DATE IS ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}.
+قواعد اللغة والكتابة الصارمة:
+- اللغة: عربية فصحى راقية جداً، بليغة، وأدبية. استخدم تراكيب لغوية غنية ومتنوعة. تجنب الجمل القصيرة المتقطعة والركيكة. هذا نص رياضي صحفي يقرأه مثقفون.
+- الأرقام: استخدم الأرقام العربية المعيارية (1234567890) حصراً. ممنوع نهائياً استخدام الأرقام الهندية (١٢٣٤٥٦٧٨٩٠) أو كتابة الأرقام ككلمات.
+- لا تبدأ المقال بعبارات تمهيدية: ابدأ بمشهد قوي أو ملاحظة تكتيكية آسرة. لا تستخدم "في هذا المقال" أو "سنتحدث عن".
+- طول المقال (إلزامي): يجب ألا يقل عن 2500 كلمة. إذا نفدت البيانات، توسع في التاريخ التكتيكي للأندية، أدوار اللاعبين الدقيقة، والتأثير العالمي للحدث.
+- التنسيق (إلزامي):
+  * العنوان: تحفة تجمع بين تحسين محركات البحث والحكاية الملحمية.
+  * العناوين الفرعية: استخدم ## للأقسام الرئيسية و ### للأقسام الفرعية. اجعلها واضحة واحترافية.
+  * التقسيم البصري: استخدم --- (خط فاصل) بين الأقسام الكبيرة لتقسيم المقال بصرياً. استخدم > (اقتباس) لعرض إحصائيات مهمة أو تصريحات. استخدم - (نقاط) للقوائم.
+  * الخط العريض: استخدم **عريض** فقط لأسماء اللاعبين/المدربين والنتائج والتواريخ المهمة. لا تجعل الجمل كاملة عريضة أبداً.
+  * الفقرات: طويلة ومتماسكة، نص عادي بشكل أساسي.
+- التحليل التكتيكي: صف ممرات التمرير، ضغوط الاستحواذ، والانتقالات الدفاعية بتفاصيل حية تجعل القارئ يرى الملعب بعين عقله.
+- الأسماء الرسمية: استخدم دائماً الأسماء الرسمية الكاملة مثل "برشلونة" و"ريال مدريد" و"مانشستر سيتي".
+- لا أحرف صينية: ممنوع نهائياً استخدام أي رموز أو أحرف صينية أو كورية أو أي لغة غير العربية والإنجليزية.
+- الإنجليزية: استخدمها فقط للمصطلحات الكروية العالمية التي لا تُترجم (مثل "تيكي تاكا"، "جيجن بريس"، "أوفسايد") أو أسماء اللاعبين الأجانب.
+- تاريخ اليوم: ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}.
 
-CRITICAL EXCLUSION RULE:
-- NEVER mention or reference the Israeli league, teams, or players.
+قاعدة الاستبعاد:
+- ممنوع نهائياً ذكر أو الإشارة إلى الدوري الإسرائيلي أو الفرق أو اللاعبين الإسرائيليين.
 
-QUIZ RULES: 
-- LEAGUES: ONLY use Top 5 European leagues + Portuguese + Dutch.
-- IMAGE URLS: Mandatory for visual quizzes. Use 'LOGO_URL' from official data.
-- NO SPOILERS: If visual, question = 'من هذا؟' or 'خمن الفريق'.
-- DEPTH: 15+ questions for every quiz.
+قواعد الاختبارات والمسابقات (للمقالات التفاعلية):
+- الدوريات: فقط أفضل 5 دوريات أوروبية + البرتغالي + الهولندي.
+- روابط الصور: إلزامية للمسابقات البصرية. استخدم LOGO_URL من البيانات الرسمية.
+- لا حرق: إذا كان سؤالاً بصرياً، السؤال = 'من هذا؟' أو 'خمن الفريق'.
+- العمق: 15 سؤالاً على الأقل لكل اختبار.
 
-Return the result as clean JSON matching the schema.`;
+أعد النتيجة بصيغة JSON نقية تطابق المخطط المطلوب.`;
 
-    const prompt = `Write a football article based on this information:
+    const prompt = `اكتب مقالاً كروياً احترافياً طويلاً بناءً على هذه المعلومات:
 
-**Topic Analysis:**
-- Category: ${topic.category}
-- Title: ${topic.title}
-- Summary: ${topic.summary}
-- Entities: ${topic.entities.join(', ')}
-- Key Questions to Address: ${topic.keyQuestions.join(', ')}
+**تحليل الموضوع:**
+- التصنيف: ${topic.category}
+- العنوان المقترح: ${topic.title}
+- الملخص: ${topic.summary}
+- الكيانات المذكورة: ${topic.entities.join(', ')}
+- الأسئلة الرئيسية التي يجب الإجابة عليها: ${topic.keyQuestions.join(', ')}
 
-**LIVE SEARCH CONTEXT (DuckDuckGo News Snippets from the past week):**
-${rawSearchContext ? rawSearchContext : 'No recent news found. Rely on verified knowledge.'}
-`;
+**نتائج البحث المباشرة (من الأسبوع الماضي):**
+${rawSearchContext ? rawSearchContext : 'لا توجد أخبار حديثة. اعتمد على معرفتك الموثقة.'}
+
+تذكر: الأرقام العربية المعيارية (1234567890) فقط. لا أحرف صينية. لغة عربية فصحى بليغة. مقال طويل جداً ومنظم.`;
 
     const result = await executeWithAI<GeneratedArticle>({
       systemPrompt: SYSTEM_PROMPT,
