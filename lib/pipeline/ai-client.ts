@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import http from 'node:http';
 
 // --- Gemini Configuration ---
 function getGeminiKeys(): string[] {
@@ -51,7 +52,7 @@ export async function executeWithAI<T>(
   if (geminiKeys.length > 0) {
     let currentKeyIndex = getAvailableGeminiKeyIndex(0);
     let attempts = 0;
-    const maxAttempts = geminiKeys.length * 3;
+    const maxAttempts = geminiKeys.length + 2; // try each key once + 2 extra as buffer
 
     while (attempts < maxAttempts) {
       const key = geminiKeys[currentKeyIndex];
@@ -93,31 +94,40 @@ export async function executeWithAI<T>(
     }
   }
 
-  // 2. Fallback: Local Ollama (gemma2:2b — lightweight, loads instantly)
+  // 2. Fallback: Local Ollama (gemma2:2b — uses node:http to avoid undici 10s headers timeout)
   try {
-    const ollamaRes = await fetch('http://localhost:11434/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gemma2:2b',
-        messages: [
-          { role: 'system', content: options.schema
-            ? `${options.systemPrompt}\n\nIMPORTANT: You must return a JSON object that strictly follows this schema:\n${JSON.stringify(options.schema, null, 2)}`
-            : options.systemPrompt },
-          { role: 'user', content: options.userPrompt },
-        ],
-        stream: false,
-        format: options.schema ? 'json' : undefined,
-        options: { temperature: options.temperature ?? 0.4, num_predict: 4096 },
-      }),
-      signal: AbortSignal.timeout(120000),
+    const body = JSON.stringify({
+      model: 'gemma2:2b',
+      messages: [
+        { role: 'system', content: options.schema
+          ? `${options.systemPrompt}\n\nIMPORTANT: You must return a JSON object that strictly follows this schema:\n${JSON.stringify(options.schema, null, 2)}`
+          : options.systemPrompt },
+        { role: 'user', content: options.userPrompt },
+      ],
+      stream: false,
+      format: options.schema ? 'json' : undefined,
+      options: { temperature: options.temperature ?? 0.4, num_predict: 4096 },
     });
-    if (ollamaRes.ok) {
-      const data = await ollamaRes.json();
-      const content = data?.message?.content || data?.response || '{}';
-      console.log('[AI Client] Using local Ollama (gemma2:2b)');
-      return (options.schema ? JSON.parse(content) : content) as T;
-    }
+    const data = await new Promise<any>((resolve, reject) => {
+      const req = http.request('http://localhost:11434/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+        timeout: 120000,
+      }, (res) => {
+        let raw = '';
+        res.on('data', (chunk: Buffer) => raw += chunk.toString());
+        res.on('end', () => {
+          try { resolve(JSON.parse(raw)); } catch { reject(new Error('Invalid JSON from Ollama')); }
+        });
+      });
+      req.on('timeout', () => { req.destroy(); reject(new Error('Ollama request timed out')); });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+    const content = data?.message?.content || data?.response || '{}';
+    console.log('[AI Client] Using local Ollama (gemma2:2b)');
+    return (options.schema ? JSON.parse(content) : content) as T;
   } catch (err: any) {
     console.warn('[AI Client] Ollama/gemma2:2b fallback failed:', err.message);
   }
