@@ -145,7 +145,7 @@ export async function executeWithAI<T>(
         await new Promise(resolve => setTimeout(resolve, 4000));
 
         const result = await client.models.generateContent({
-          model: 'gemini-2.0-flash-exp', // Restored working model
+          model: 'gemini-2.0-flash',
           contents: [{ role: 'user', parts: [{ text: `${options.systemPrompt}\n\n${options.userPrompt}` }] }],
           config: {
             responseMimeType: options.schema ? 'application/json' : 'text/plain',
