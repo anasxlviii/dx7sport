@@ -95,13 +95,13 @@ export async function executeWithAI<T>(
     }
   }
 
-  // 2. Fallback: Local Ollama (Gemma 4 on same VPS)
+  // 2. Fallback: Local Ollama (gemma2:2b — lightweight, loads instantly)
   try {
     const ollamaRes = await fetch('http://localhost:11434/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemma4',
+        model: 'gemma2:2b',
         messages: [
           { role: 'system', content: options.schema
             ? `${options.systemPrompt}\n\nIMPORTANT: You must return a JSON object that strictly follows this schema:\n${JSON.stringify(options.schema, null, 2)}`
@@ -112,16 +112,16 @@ export async function executeWithAI<T>(
         format: options.schema ? 'json' : undefined,
         options: { temperature: options.temperature ?? 0.4, num_predict: 4096 },
       }),
-      signal: AbortSignal.timeout(120000),
+      signal: AbortSignal.timeout(60000),
     });
     if (ollamaRes.ok) {
       const data = await ollamaRes.json();
       const content = data?.message?.content || data?.response || '{}';
-      console.log('[AI Client] Using local Ollama (Gemma 4)');
+      console.log('[AI Client] Using local Ollama (gemma2:2b)');
       return (options.schema ? JSON.parse(content) : content) as T;
     }
   } catch (err: any) {
-    console.warn('[AI Client] Ollama/Gemma 4 fallback failed:', err.message);
+    console.warn('[AI Client] Ollama/gemma2:2b fallback failed:', err.message);
   }
 
   throw new Error('[AI Client] All AI providers exhausted or failed.');
