@@ -27,11 +27,19 @@ interface CrosswordData {
   };
 }
 
+interface CrosswordLevel {
+  name: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  description: string;
+  data: CrosswordData;
+}
+
 interface Props {
   data: {
     type: 'multiple_choice' | 'crossword';
     questions?: QuizQuestion[];
     crossword?: CrosswordData;
+    levels?: CrosswordLevel[];
   };
 }
 
@@ -46,7 +54,98 @@ function getDifficultyLabel(index: number, total: number): { label: string; colo
 // ──────────────────────────────────────────────────────────────
 //  CROSSWORD COMPONENT
 // ──────────────────────────────────────────────────────────────
-function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
+function CrosswordGame({ crossword, levels }: { crossword?: CrosswordData; levels?: CrosswordLevel[] }) {
+  const [levelIndex, setLevelIndex] = useState<number | null>(null);
+
+  if (levels && levels.length > 0) {
+    return <CrosswordWithLevels levels={levels} />;
+  }
+
+  if (!crossword) return null;
+  return <CrosswordPuzzle crossword={crossword} />;
+}
+
+const STORAGE_KEY = 'dx7-crossword-progress';
+
+function CrosswordWithLevels({ levels }: { levels: CrosswordLevel[] }) {
+  const [levelIndex, setLevelIndex] = useState<number | null>(null);
+  const [progress, setProgress] = useState<Record<number, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch { return {}; }
+  });
+
+  const saveProgress = (idx: number) => {
+    const next = { ...progress, [idx]: true };
+    setProgress(next);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+  };
+
+  if (levelIndex !== null) {
+    const level = levels[levelIndex];
+    return (
+      <CrosswordPuzzle
+        crossword={level.data}
+        onComplete={() => saveProgress(levelIndex)}
+        onBack={() => setLevelIndex(null)}
+        levelName={level.name}
+        difficulty={level.difficulty}
+      />
+    );
+  }
+
+  const difficultyMeta: Record<string, { color: string; label: string }> = {
+    easy: { color: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10', label: 'سهل' },
+    medium: { color: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10', label: 'متوسط' },
+    hard: { color: 'text-red-400 border-red-400/30 bg-red-400/10', label: 'صعب' },
+  };
+
+  return (
+    <div className="space-y-10 animate-in fade-in duration-700">
+      <div className="text-center mb-12">
+        <h3 className="text-[10px] font-black text-lime uppercase tracking-[0.5em] mb-4">اختر مستواك</h3>
+        <h2 className="text-4xl md:text-5xl font-black italic text-white tracking-tighter">
+          مراحل التحدي
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {levels.map((lv, idx) => {
+          const done = progress[idx];
+          const locked = idx > 0 && !progress[idx - 1];
+          const meta = difficultyMeta[lv.difficulty];
+          return (
+            <button
+              key={idx}
+              disabled={locked}
+              onClick={() => setLevelIndex(idx)}
+              className={`relative bg-zinc-950 border ${locked ? 'border-zinc-800 opacity-40' : done ? 'border-emerald-500/50' : 'border-zinc-900 hover:border-lime/50'} p-8 text-right transition-all group ${locked ? '' : 'hover:scale-[1.02]'}`}
+            >
+              {locked && <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10"><span className="text-4xl">🔒</span></div>}
+              <div className="flex items-center justify-between mb-4">
+                <span className={`text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 border rounded-sm ${done ? 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10' : meta.color}`}>
+                  {done ? '✓ مكتمل' : meta.label}
+                </span>
+                <span className="text-3xl font-black text-zinc-700">0{idx + 1}</span>
+              </div>
+              <h4 className={`text-2xl font-black ${done ? 'text-emerald-400' : 'text-white group-hover:text-lime'} transition-colors mb-3`}>{lv.name}</h4>
+              <p className="text-sm text-gray-500 leading-relaxed">{lv.description}</p>
+              <div className="mt-4 flex gap-2">
+                <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">{lv.data.grid.length}×{lv.data.grid[0].length}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CrosswordPuzzle({ crossword, onComplete, onBack, levelName, difficulty }: {
+  crossword: CrosswordData;
+  onComplete?: () => void;
+  onBack?: () => void;
+  levelName?: string;
+  difficulty?: string;
+}) {
   const rows = crossword.grid.length;
   const cols = crossword.grid[0].length;
   const allClues = [...crossword.clues.across, ...crossword.clues.down];
@@ -77,7 +176,6 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
     return { row: 0, col: 0 };
   }
 
-  // Timer
   useEffect(() => {
     if (validated || isComplete) return;
     const interval = setInterval(() => setElapsed((t) => t + 1), 1000);
@@ -181,8 +279,8 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
   function handleKeyDown(r: number, c: number, e: React.KeyboardEvent) {
     if (e.key === 'ArrowUp') { e.preventDefault(); moveTo(r - 1, c, 'up'); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); moveTo(r + 1, c, 'down'); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); moveTo(r, c - 1, 'left'); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); moveTo(r, c + 1, 'right'); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); moveTo(r, c + 1, 'left'); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); moveTo(r, c - 1, 'right'); }
     else if (e.key === 'Backspace') {
       if (userGrid[r][c]) {
         const newGrid = userGrid.map(row => [...row]);
@@ -247,18 +345,8 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
       userGrid[cell.row][cell.col]?.toUpperCase() === crossword.grid[cell.row][cell.col]?.toUpperCase()
     );
     setWordResults(w => ({ ...w, [key]: allCorrect }));
-    if (allCorrect) {
-      setCompletedClues(s => new Set(s).add(key));
-      checkAllCompleted();
-    }
+    if (allCorrect) setCompletedClues(s => new Set(s).add(key));
     return allCorrect;
-  }
-
-  function checkAllCompleted() {
-    const total = allClues.length;
-    if (completedClues.size >= total) {
-      setIsComplete(true);
-    }
   }
 
   function revealHint() {
@@ -296,7 +384,8 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
       })
     );
     setScore({ correct, total });
-    setIsComplete(correct === total);
+    const allGood = correct === total;
+    setIsComplete(allGood);
 
     allClues.forEach(cl => {
       const a = crossword.clues.across.includes(cl);
@@ -304,6 +393,8 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
       if (a) validateWord(cl, 'across');
       if (d) validateWord(cl, 'down');
     });
+
+    if (allGood && onComplete) onComplete();
   }
 
   function handleReset() {
@@ -335,13 +426,39 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
     return 'border-zinc-900 bg-zinc-950/50';
   }
 
-  // ------ Render ------
   const activeClue = getActiveClue();
-
   const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
+  const diffMeta: Record<string, { color: string; label: string }> = {
+    easy: { color: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10', label: 'سهل' },
+    medium: { color: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10', label: 'متوسط' },
+    hard: { color: 'text-red-400 border-red-400/30 bg-red-400/10', label: 'صعب' },
+  };
+
   return (
-    <div className="space-y-12 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Level Header */}
+      {(levelName || onBack) && (
+        <div className="flex items-center justify-between">
+          {onBack && (
+            <button onClick={onBack} className="text-[10px] font-black text-zinc-500 hover:text-lime uppercase tracking-[0.3em] transition-colors flex items-center gap-2">
+              → العودة للمراحل
+            </button>
+          )}
+          {levelName && (
+            <div className="flex items-center gap-4">
+              <span className="text-xl font-black text-white">{levelName}</span>
+              {difficulty && diffMeta[difficulty] && (
+                <span className={`text-[10px] font-black uppercase tracking-[0.3em] px-3 py-1 border rounded-sm ${diffMeta[difficulty].color}`}>
+                  {diffMeta[difficulty].label}
+                </span>
+              )}
+            </div>
+          )}
+          <div className="w-24" />
+        </div>
+      )}
+
       {/* Timer & Stats Bar */}
       <div className="flex items-center justify-between gap-4 bg-zinc-950 border border-zinc-900 p-4">
         <div className="flex items-center gap-3">
@@ -369,7 +486,6 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-lime/5 to-transparent pointer-events-none" />
           <div
             className="grid gap-1.5 relative z-10"
-            dir="ltr"
             style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           >
             {userGrid.map((row, rIdx) =>
@@ -427,7 +543,6 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
             )}
           </div>
 
-          {/* Score banner after validation */}
           {score && (
             <div className="mt-8 relative z-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
               <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em] mb-2">نتيجتك</p>
@@ -495,38 +610,26 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center justify-center gap-4 mt-12">
+      <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
         {!validated && !isComplete && (
           <>
-            <button
-              onClick={handleValidateAll}
+            <button onClick={handleValidateAll}
               className="px-12 py-5 bg-lime text-black font-black uppercase tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(158,255,0,0.2)] active:scale-95"
-            >
-              تحقق من الحل
-            </button>
-            <button
-              onClick={revealHint}
+            >تحقق من الحل</button>
+            <button onClick={revealHint}
               className="px-8 py-5 bg-zinc-900 text-lime font-black uppercase tracking-[0.3em] hover:bg-zinc-800 hover:scale-105 transition-all border border-zinc-700 active:scale-95 text-sm"
-            >
-              💡 تلميح
-            </button>
+            >💡 تلميح</button>
             {activeClue && (
-              <button
-                onClick={() => { validateWord(activeClue, direction); }}
+              <button onClick={() => { validateWord(activeClue, direction); }}
                 className="px-8 py-5 bg-zinc-900 text-gray-300 font-black uppercase tracking-[0.3em] hover:bg-zinc-800 hover:scale-105 transition-all border border-zinc-700 active:scale-95 text-sm"
-              >
-                تحقق من الكلمة
-              </button>
+              >تحقق من الكلمة</button>
             )}
           </>
         )}
         {(validated || isComplete) && (
-          <button
-            onClick={handleReset}
+          <button onClick={handleReset}
             className="px-16 py-5 bg-zinc-900 text-white font-black uppercase tracking-[0.3em] hover:bg-zinc-800 hover:scale-105 transition-all border border-zinc-700 active:scale-95"
-          >
-            إعادة المحاولة
-          </button>
+          >إعادة المحاولة</button>
         )}
       </div>
     </div>
@@ -547,8 +650,13 @@ export function QuizRenderer({ data }: Props) {
   const [maxStreak, setMaxStreak] = useState(0);
   const [showStreakAnim, setShowStreakAnim] = useState(false);
 
-  if (data.type === 'crossword' && data.crossword) {
-    return <CrosswordGame crossword={data.crossword} />;
+  if (data.type === 'crossword') {
+    if (data.levels && data.levels.length > 0) {
+      return <CrosswordGame levels={data.levels} />;
+    }
+    if (data.crossword) {
+      return <CrosswordGame crossword={data.crossword} />;
+    }
   }
 
   const questions = data.questions || [];
