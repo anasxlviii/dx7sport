@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface QuizQuestion {
   question: string;
@@ -47,17 +47,244 @@ function getDifficultyLabel(index: number, total: number): { label: string; colo
 //  CROSSWORD COMPONENT
 // ──────────────────────────────────────────────────────────────
 function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
-  const [userGrid, setUserGrid] = useState<(string | null)[][]>(
+  const rows = crossword.grid.length;
+  const cols = crossword.grid[0].length;
+  const allClues = [...crossword.clues.across, ...crossword.clues.down];
+
+  const [userGrid, setUserGrid] = useState<(string | null)[][]>(() =>
     crossword.grid.map((row) => row.map((cell) => (cell ? '' : null)))
   );
   const [validated, setValidated] = useState(false);
   const [correctCells, setCorrectCells] = useState<boolean[][]>([]);
   const [score, setScore] = useState<{ correct: number; total: number } | null>(null);
+  const [activeRow, setActiveRow] = useState(() => firstCell().row);
+  const [activeCol, setActiveCol] = useState(() => firstCell().col);
+  const [direction, setDirection] = useState<'across' | 'down'>('across');
+  const [elapsed, setElapsed] = useState(0);
+  const [wordResults, setWordResults] = useState<Record<string, boolean>>({});
+  const [revealedCells, setRevealedCells] = useState<Set<string>>(new Set());
+  const [completedClues, setCompletedClues] = useState<Set<string>>(new Set());
+  const [isComplete, setIsComplete] = useState(false);
 
-  const handleValidate = () => {
+  const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
+
+  // Init refs grid
+  useEffect(() => {
+    inputRefs.current = Array.from({ length: rows }, () => Array(cols).fill(null));
+  }, [rows, cols]);
+
+  function firstCell() {
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (crossword.grid[r][c] !== null) return { row: r, col: c };
+    return { row: 0, col: 0 };
+  }
+
+  // Timer
+  useEffect(() => {
+    if (validated || isComplete) return;
+    const interval = setInterval(() => setElapsed((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, [validated, isComplete]);
+
+  function cellKey(r: number, c: number) { return `${r},${c}`; }
+  function clueKey(type: string, num: number) { return `${type}-${num}`; }
+
+  function getClueAt(row: number, col: number, dir: 'across' | 'down'): CrosswordClue | null {
+    if (dir === 'across')
+      return crossword.clues.across.find(c => c.row === row && c.col <= col && c.col + c.answer.length > col) || null;
+    return crossword.clues.down.find(c => c.col === col && c.row <= row && c.row + c.answer.length > row) || null;
+  }
+
+  function getActiveClue(): CrosswordClue | null {
+    return getClueAt(activeRow, activeCol, direction);
+  }
+
+  function getWordCells(clue: CrosswordClue, dir: 'across' | 'down'): { row: number; col: number }[] {
+    const cells: { row: number; col: number }[] = [];
+    if (dir === 'across')
+      for (let i = 0; i < clue.answer.length; i++)
+        if (crossword.grid[clue.row][clue.col + i] !== null)
+          cells.push({ row: clue.row, col: clue.col + i });
+    else
+      for (let i = 0; i < clue.answer.length; i++)
+        if (crossword.grid[clue.row + i][clue.col] !== null)
+          cells.push({ row: clue.row + i, col: clue.col });
+    return cells;
+  }
+
+  function isCellInActiveWord(r: number, c: number): boolean {
+    const clue = getActiveClue();
+    if (!clue) return false;
+    const cells = getWordCells(clue, direction);
+    return cells.some(cell => cell.row === r && cell.col === c);
+  }
+
+  function isCellInCompletedWord(r: number, c: number): boolean {
+    for (const key of completedClues) {
+      const [type, numStr] = key.split('-');
+      const num = Number(numStr);
+      const clueList = type === 'across' ? crossword.clues.across : crossword.clues.down;
+      const clue = clueList.find(cl => cl.number === num);
+      if (!clue) continue;
+      const dir = type as 'across' | 'down';
+      const cells = getWordCells(clue, dir);
+      if (cells.some(cell => cell.row === r && cell.col === c)) return true;
+    }
+    return false;
+  }
+
+  function findNextCellInWord(r: number, c: number, dir: 'across' | 'down'): { row: number; col: number } | null {
+    const clue = getClueAt(r, c, dir);
+    if (!clue) return null;
+    const cells = getWordCells(clue, dir);
+    const idx = cells.findIndex(cell => cell.row === r && cell.col === c);
+    if (idx === -1) return null;
+    for (let i = idx + 1; i < cells.length; i++) {
+      if (!userGrid[cells[i].row][cells[i].col]) return cells[i];
+    }
+    return null;
+  }
+
+  function findPrevCellInWord(r: number, c: number, dir: 'across' | 'down'): { row: number; col: number } | null {
+    const clue = getClueAt(r, c, dir);
+    if (!clue) return null;
+    const cells = getWordCells(clue, dir);
+    const idx = cells.findIndex(cell => cell.row === r && cell.col === c);
+    if (idx === -1) return null;
+    for (let i = idx - 1; i >= 0; i--) {
+      if (!userGrid[cells[i].row][cells[i].col]) return null;
+      return cells[i];
+    }
+    return null;
+  }
+
+  function focusCell(r: number, c: number) {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (crossword.grid[r][c] === null) return;
+    setActiveRow(r);
+    setActiveCol(c);
+    const el = inputRefs.current[r]?.[c];
+    if (el) setTimeout(() => el.focus(), 0);
+  }
+
+  function handleCellChange(r: number, c: number, value: string) {
+    const letter = value.slice(-1).toUpperCase();
+    if (crossword.grid[r][c] === null) return;
+    const newGrid = userGrid.map(row => [...row]);
+    newGrid[r][c] = letter;
+    setUserGrid(newGrid);
+
+    if (letter) {
+      const next = findNextCellInWord(r, c, direction);
+      if (next) focusCell(next.row, next.col);
+    }
+  }
+
+  function handleKeyDown(r: number, c: number, e: React.KeyboardEvent) {
+    if (e.key === 'ArrowUp') { e.preventDefault(); moveTo(r - 1, c, 'up'); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); moveTo(r + 1, c, 'down'); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); moveTo(r, c - 1, 'left'); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); moveTo(r, c + 1, 'right'); }
+    else if (e.key === 'Backspace') {
+      if (userGrid[r][c]) {
+        const newGrid = userGrid.map(row => [...row]);
+        newGrid[r][c] = '';
+        setUserGrid(newGrid);
+      } else {
+        const prev = findPrevCellInWord(r, c, direction);
+        if (prev) {
+          const newGrid = userGrid.map(row => [...row]);
+          newGrid[prev.row][prev.col] = '';
+          setUserGrid(newGrid);
+          focusCell(prev.row, prev.col);
+        }
+      }
+    }
+    else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const clues = crossword.clues.across.filter(cl => cl.row === r && cl.col <= c && cl.col + cl.answer.length > c);
+      const clued = crossword.clues.down.filter(cl => cl.col === c && cl.row <= r && cl.row + cl.answer.length > r);
+      if (clues.length > 0 && clued.length > 0) {
+        setDirection(d => d === 'across' ? 'down' : 'across');
+      }
+    }
+  }
+
+  function moveTo(r: number, c: number, _dir: string) {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (crossword.grid[r][c] === null) {
+      const dr = _dir === 'up' ? -1 : _dir === 'down' ? 1 : 0;
+      const dc = _dir === 'left' ? -1 : _dir === 'right' ? 1 : 0;
+      const nr = r + dr;
+      const nc = c + dc;
+      if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) return;
+      moveTo(nr, nc, _dir);
+      return;
+    }
+    focusCell(r, c);
+  }
+
+  function handleCellClick(r: number, c: number) {
+    if (crossword.grid[r][c] === null) return;
+    if (activeRow === r && activeCol === c) {
+      setDirection(d => d === 'across' ? 'down' : 'across');
+    } else {
+      const hasAcross = crossword.clues.across.some(cl => cl.row === r && cl.col <= c && cl.col + cl.answer.length > c);
+      const hasDown = crossword.clues.down.some(cl => cl.col === c && cl.row <= r && cl.row + cl.answer.length > r);
+      if (hasAcross && !hasDown) setDirection('across');
+      else if (hasDown && !hasAcross) setDirection('down');
+      focusCell(r, c);
+    }
+  }
+
+  function handleClueClick(clue: CrosswordClue, dir: 'across' | 'down') {
+    setDirection(dir);
+    focusCell(clue.row, clue.col);
+  }
+
+  function validateWord(clue: CrosswordClue, dir: 'across' | 'down') {
+    const cells = getWordCells(clue, dir);
+    const key = clueKey(dir, clue.number);
+    const allCorrect = cells.every(cell =>
+      userGrid[cell.row][cell.col]?.toUpperCase() === crossword.grid[cell.row][cell.col]?.toUpperCase()
+    );
+    setWordResults(w => ({ ...w, [key]: allCorrect }));
+    if (allCorrect) {
+      setCompletedClues(s => new Set(s).add(key));
+      checkAllCompleted();
+    }
+    return allCorrect;
+  }
+
+  function checkAllCompleted() {
+    const total = allClues.length;
+    if (completedClues.size >= total) {
+      setIsComplete(true);
+    }
+  }
+
+  function revealHint() {
+    const clue = getActiveClue();
+    if (!clue) return;
+    const cells = getWordCells(clue, direction);
+    const wrongCells = cells.filter(cell =>
+      !revealedCells.has(cellKey(cell.row, cell.col)) &&
+      userGrid[cell.row][cell.col]?.toUpperCase() !== crossword.grid[cell.row][cell.col]?.toUpperCase()
+    );
+    if (wrongCells.length === 0) return;
+    const target = wrongCells[0];
+    const newGrid = userGrid.map(row => [...row]);
+    newGrid[target.row][target.col] = crossword.grid[target.row][target.col]!;
+    setUserGrid(newGrid);
+    setRevealedCells(s => new Set(s).add(cellKey(target.row, target.col)));
+    focusCell(target.row, target.col);
+  }
+
+  function handleValidateAll() {
     const result: boolean[][] = crossword.grid.map((row, rIdx) =>
       row.map((cell, cIdx) => {
-        if (cell === null) return true; // Black cell — always "correct"
+        if (cell === null) return true;
         return userGrid[rIdx][cIdx]?.toUpperCase() === cell.toUpperCase();
       })
     );
@@ -68,66 +295,132 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
     let total = 0;
     crossword.grid.forEach((row, rIdx) =>
       row.forEach((cell, cIdx) => {
-        if (cell !== null) {
-          total++;
-          if (result[rIdx][cIdx]) correct++;
-        }
+        if (cell !== null) { total++; if (result[rIdx][cIdx]) correct++; }
       })
     );
     setScore({ correct, total });
-  };
+    setIsComplete(correct === total);
 
-  const handleReset = () => {
+    allClues.forEach(cl => {
+      const a = crossword.clues.across.includes(cl);
+      const d = crossword.clues.down.includes(cl);
+      if (a) validateWord(cl, 'across');
+      if (d) validateWord(cl, 'down');
+    });
+  }
+
+  function handleReset() {
     setUserGrid(crossword.grid.map((row) => row.map((cell) => (cell ? '' : null))));
     setValidated(false);
     setCorrectCells([]);
     setScore(null);
-  };
+    setElapsed(0);
+    setWordResults({});
+    setRevealedCells(new Set());
+    setCompletedClues(new Set());
+    setIsComplete(false);
+    const fc = firstCell();
+    setActiveRow(fc.row);
+    setActiveCol(fc.col);
+    setDirection('across');
+  }
+
+  function isWordCorrect(clue: CrosswordClue, dir: 'across' | 'down'): boolean | null {
+    const key = clueKey(dir, clue.number);
+    if (wordResults[key] !== undefined) return wordResults[key];
+    return null;
+  }
+
+  function activeClueCls(clue: CrosswordClue, dir: 'across' | 'down'): string {
+    const active = getActiveClue();
+    if (active?.number === clue.number && ((dir === 'across' && crossword.clues.across.includes(active)) || (dir === 'down' && crossword.clues.down.includes(active))))
+      return 'border-lime/50 bg-lime/5';
+    return 'border-zinc-900 bg-zinc-950/50';
+  }
+
+  // ------ Render ------
+  const activeClue = getActiveClue();
+
+  const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
+      {/* Timer & Stats Bar */}
+      <div className="flex items-center justify-between gap-4 bg-zinc-950 border border-zinc-900 p-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-2 h-2 rounded-full ${validated || isComplete ? 'bg-zinc-600' : 'bg-lime animate-pulse'}`} />
+          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">
+            {validated || isComplete ? 'تم' : 'لعب'}
+          </span>
+        </div>
+        <div className="flex items-center gap-6">
+          {activeClue && (
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+              <span className="text-lime">{direction === 'across' ? 'أفقي' : 'رأسي'}</span> · {activeClue.clue}
+            </span>
+          )}
+          <span className="text-lg font-black text-lime tabular-nums" dir="ltr">{fmt(elapsed)}</span>
+        </div>
+        <div className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">
+          {completedClues.size}/{allClues.length}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Grid */}
         <div className="lg:col-span-7 bg-zinc-950 p-6 md:p-12 border border-zinc-900 flex flex-col items-center shadow-2xl relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-lime/5 to-transparent pointer-events-none" />
           <div
             className="grid gap-1.5 relative z-10"
-            style={{ gridTemplateColumns: `repeat(${crossword.grid[0].length}, minmax(0, 1fr))` }}
+            dir="ltr"
+            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           >
             {userGrid.map((row, rIdx) =>
               row.map((cell, cIdx) => {
-                const clueNumber = crossword.clues.across.find(c => c.row === rIdx && c.col === cIdx)?.number || 
+                const isBlack = cell === null;
+                const isActive = activeRow === rIdx && activeCol === cIdx;
+                const inActiveWord = !isBlack && isCellInActiveWord(rIdx, cIdx);
+                const inCompleted = !isBlack && isCellInCompletedWord(rIdx, cIdx);
+                const isRevealed = revealedCells.has(cellKey(rIdx, cIdx));
+                const cellCorrect = correctCells[rIdx]?.[cIdx];
+
+                const clueNumber = crossword.clues.across.find(c => c.row === rIdx && c.col === cIdx)?.number ||
                                    crossword.clues.down.find(c => c.row === rIdx && c.col === cIdx)?.number;
-                
+
+                let cellStyle = 'bg-zinc-900 border-zinc-800';
+                if (validated) {
+                  cellStyle = cellCorrect ? 'bg-lime/20 border-lime text-lime' : 'bg-red-500/20 border-red-500 text-red-400';
+                } else if (isActive) {
+                  cellStyle = 'bg-lime/20 border-lime ring-2 ring-lime/50';
+                } else if (inActiveWord) {
+                  cellStyle = 'bg-lime/10 border-lime/30';
+                } else if (inCompleted) {
+                  cellStyle = 'bg-emerald-900/20 border-emerald-700/30';
+                }
+
                 return (
                   <div key={`${rIdx}-${cIdx}`} className="aspect-square w-10 md:w-14 relative">
-                    {cell === null ? (
+                    {isBlack ? (
                       <div className="w-full h-full bg-black/60 border border-zinc-900/50" />
                     ) : (
                       <>
                         {clueNumber && (
-                          <span className="absolute top-0.5 right-1 text-[8px] md:text-[10px] font-black text-lime/50 z-20">
+                          <span className="absolute top-0.5 right-1 text-[8px] md:text-[10px] font-black text-lime/50 z-20 select-none">
                             {clueNumber}
                           </span>
                         )}
                         <input
+                          ref={el => { inputRefs.current[rIdx]![cIdx] = el; }}
                           type="text"
                           maxLength={1}
                           value={userGrid[rIdx][cIdx] || ''}
-                          disabled={validated}
-                          onChange={(e) => {
-                            const newGrid = userGrid.map((r) => [...r]);
-                            newGrid[rIdx][cIdx] = e.target.value.toUpperCase();
-                            setUserGrid(newGrid);
-                          }}
-                          className={`w-full h-full text-white text-center font-black text-xl focus:outline-none border transition-all
-                            ${
-                              validated
-                                ? correctCells[rIdx]?.[cIdx]
-                                  ? 'bg-lime/20 border-lime text-lime'
-                                  : 'bg-red-500/20 border-red-500 text-red-400'
-                                : 'bg-zinc-900 border-zinc-800 focus:bg-lime/20 focus:ring-2 focus:ring-lime/50'
-                            }`}
+                          disabled={validated || isComplete}
+                          onFocus={() => handleCellClick(rIdx, cIdx)}
+                          onClick={() => handleCellClick(rIdx, cIdx)}
+                          onChange={(e) => handleCellChange(rIdx, cIdx, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(rIdx, cIdx, e)}
+                          className={`w-full h-full text-white text-center font-black text-xl focus:outline-none border transition-all duration-150
+                            ${cellStyle} ${isRevealed ? 'shadow-[inset_0_0_10px_rgba(255,255,0,0.3)]' : ''}`}
                         />
                       </>
                     )}
@@ -145,7 +438,11 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
                 {score.correct} / {score.total}
               </p>
               <p className="text-xs text-zinc-500 mt-1">
-                {score.correct === score.total ? '🏆 ممتاز! كل الإجابات صحيحة' : `${score.total - score.correct} خطأ — حاول مجدداً`}
+                {isComplete
+                  ? '🏆 ممتاز! كل الإجابات صحيحة'
+                  : validated
+                    ? `${score.total - score.correct} خطأ — حاول مجدداً`
+                    : ''}
               </p>
             </div>
           )}
@@ -157,44 +454,76 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
             <h4 className="text-[11px] font-black text-lime uppercase tracking-[0.4em] mb-6 flex items-center gap-3">
               <span className="w-1 h-3 bg-lime" /> أفقياً (Across)
             </h4>
-            <ul className="space-y-3">
-              {crossword.clues.across.map((c) => (
-                <li
-                  key={c.number}
-                  className="text-sm font-bold text-gray-400 leading-relaxed bg-zinc-950/50 p-4 border border-zinc-900 hover:border-zinc-700 transition-colors cursor-default"
-                >
-                  <span className="text-lime mr-3 font-black opacity-50">{c.number}.</span> {c.clue}
-                </li>
-              ))}
+            <ul className="space-y-2">
+              {crossword.clues.across.map((c) => {
+                const wc = isWordCorrect(c, 'across');
+                return (
+                  <li
+                    key={c.number}
+                    onClick={() => handleClueClick(c, 'across')}
+                    className={`text-sm font-bold leading-relaxed p-4 border transition-all cursor-pointer hover:border-zinc-600 ${activeClueCls(c, 'across')}
+                      ${wc === true ? 'text-lime border-lime/30 bg-lime/5' : wc === false ? 'text-red-400 border-red-500/30 bg-red-500/5' : 'text-gray-400'}`}
+                  >
+                    <span className="text-lime mr-3 font-black opacity-50">{c.number}.</span> {c.clue}
+                    {wc === true && <span className="mr-2 text-lime">✓</span>}
+                    {wc === false && <span className="mr-2 text-red-400">✗</span>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
           <div className="bg-black/40 p-6 border border-zinc-900">
             <h4 className="text-[11px] font-black text-lime uppercase tracking-[0.4em] mb-6 flex items-center gap-3">
               <span className="w-1 h-3 bg-lime" /> رأسياً (Down)
             </h4>
-            <ul className="space-y-3">
-              {crossword.clues.down.map((c) => (
-                <li
-                  key={c.number}
-                  className="text-sm font-bold text-gray-400 leading-relaxed bg-zinc-950/50 p-4 border border-zinc-900 hover:border-zinc-700 transition-colors cursor-default"
-                >
-                  <span className="text-lime mr-3 font-black opacity-50">{c.number}.</span> {c.clue}
-                </li>
-              ))}
+            <ul className="space-y-2">
+              {crossword.clues.down.map((c) => {
+                const wc = isWordCorrect(c, 'down');
+                return (
+                  <li
+                    key={c.number}
+                    onClick={() => handleClueClick(c, 'down')}
+                    className={`text-sm font-bold leading-relaxed p-4 border transition-all cursor-pointer hover:border-zinc-600 ${activeClueCls(c, 'down')}
+                      ${wc === true ? 'text-lime border-lime/30 bg-lime/5' : wc === false ? 'text-red-400 border-red-500/30 bg-red-500/5' : 'text-gray-400'}`}
+                  >
+                    <span className="text-lime mr-3 font-black opacity-50">{c.number}.</span> {c.clue}
+                    {wc === true && <span className="mr-2 text-lime">✓</span>}
+                    {wc === false && <span className="mr-2 text-red-400">✗</span>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-6 mt-12">
-        {!validated ? (
-          <button
-            onClick={handleValidate}
-            className="px-16 py-5 bg-lime text-black font-black uppercase tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(158,255,0,0.2)] active:scale-95"
-          >
-            تحقق من الحل
-          </button>
-        ) : (
+      {/* Controls */}
+      <div className="flex flex-wrap items-center justify-center gap-4 mt-12">
+        {!validated && !isComplete && (
+          <>
+            <button
+              onClick={handleValidateAll}
+              className="px-12 py-5 bg-lime text-black font-black uppercase tracking-[0.3em] hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(158,255,0,0.2)] active:scale-95"
+            >
+              تحقق من الحل
+            </button>
+            <button
+              onClick={revealHint}
+              className="px-8 py-5 bg-zinc-900 text-lime font-black uppercase tracking-[0.3em] hover:bg-zinc-800 hover:scale-105 transition-all border border-zinc-700 active:scale-95 text-sm"
+            >
+              💡 تلميح
+            </button>
+            {activeClue && (
+              <button
+                onClick={() => { validateWord(activeClue, direction); }}
+                className="px-8 py-5 bg-zinc-900 text-gray-300 font-black uppercase tracking-[0.3em] hover:bg-zinc-800 hover:scale-105 transition-all border border-zinc-700 active:scale-95 text-sm"
+              >
+                تحقق من الكلمة
+              </button>
+            )}
+          </>
+        )}
+        {(validated || isComplete) && (
           <button
             onClick={handleReset}
             className="px-16 py-5 bg-zinc-900 text-white font-black uppercase tracking-[0.3em] hover:bg-zinc-800 hover:scale-105 transition-all border border-zinc-700 active:scale-95"

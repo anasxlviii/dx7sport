@@ -234,7 +234,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   const imageUrl = article.featuredImage?.startsWith('http')
     ? article.featuredImage
-    : `https://dx7sport.com${article.featuredImage || '/logo.png'}`;
+    : article.featuredImage?.startsWith('data:')
+      ? `https://dx7sport.com/api/featured-image/${article.id}`
+      : 'https://dx7sport.com/logo.png';
   
   return {
     title: article.title,
