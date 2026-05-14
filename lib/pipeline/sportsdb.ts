@@ -1,5 +1,5 @@
 const SPORTSDB_API_KEY = '3';
-const CACHE_TTL = 2 * 60 * 60 * 1000;
+const CACHE_TTL = 30 * 60 * 1000;
 
 const cache = new Map<string, { data: any; expiry: number }>();
 
