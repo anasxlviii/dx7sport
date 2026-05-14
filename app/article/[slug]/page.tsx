@@ -57,6 +57,12 @@ function fixContent(content: string): string {
   return text.trim();
 }
 
+function featuredImageUrl(article: { id: number; featuredImage: string | null }): string | null {
+  if (!article.featuredImage || article.featuredImage.startsWith('http')) return article.featuredImage;
+  if (article.featuredImage.startsWith('data:')) return `/api/featured-image/${article.id}`;
+  return null;
+}
+
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [article, adSettings] = await Promise.all([getArticle(slug), getAdSettings()]);
@@ -75,8 +81,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   return (
     <div className="min-h-screen bg-black">
       <article className="relative overflow-hidden" style={{ minHeight: '520px' }}>
-        {article.featuredImage ? (
-          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${article.featuredImage}')` }} />
+        {featuredImageUrl(article) ? (
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${featuredImageUrl(article)}')` }} />
         ) : (
           <div className="absolute inset-0 bg-zinc-900 dxt-hero-pattern" />
         )}

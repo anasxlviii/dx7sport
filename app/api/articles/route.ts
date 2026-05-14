@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
 
         const articlesWithSources = allArticles.map(article => ({
           ...article,
+          featuredImage: article.featuredImage?.startsWith('data:') ? null : article.featuredImage,
           sources: sourcesMap[article.id] || [],
         }));
 

@@ -41,8 +41,23 @@ async function getData() {
   return { allArticles: [], settingsMap: {}, scores: [] };
 }
 
+function featuredImg(article: { id: number; featuredImage: string | null }): string | null {
+  if (!article.featuredImage) return null;
+  if (article.featuredImage.startsWith('http')) return article.featuredImage;
+  if (article.featuredImage.startsWith('data:')) return `/api/featured-image/${article.id}`;
+  return null;
+}
+
+function sanitizeArticles(articles: any[]) {
+  return articles.map(a => ({
+    ...a,
+    featuredImage: a.featuredImage?.startsWith('data:') ? null : a.featuredImage,
+  }));
+}
+
 export default async function Home() {
-  const { allArticles, settingsMap, scores } = await getData();
+  const { allArticles: rawArticles, settingsMap, scores } = await getData();
+  const allArticles = sanitizeArticles(rawArticles);
 
   const featuredArticle = allArticles.length > 0 ? allArticles[0] : null;
   const sidebarArticles = allArticles.slice(1, 4);
@@ -110,7 +125,7 @@ export default async function Home() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent z-10" />
                     <img
-                      src={featuredArticle.featuredImage || '/hero/default_card.png'}
+                      src={featuredImg(featuredArticle) || '/hero/default_card.png'}
                       alt={featuredArticle.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                     />

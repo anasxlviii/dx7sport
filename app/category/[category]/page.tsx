@@ -47,7 +47,11 @@ export default async function CategoryPage({
   params: Promise<{ category: string }>;
 }) {
   const { category } = await params;
-  const articles = await getArticlesByCategory(category);
+  const rawArticles = await getArticlesByCategory(category);
+  const articles = rawArticles.map(a => ({
+    ...a,
+    featuredImage: a.featuredImage?.startsWith('data:') ? null : a.featuredImage,
+  }));
   const categoryTitle = CATEGORIES[category as keyof typeof CATEGORIES];
 
   if (!categoryTitle) {

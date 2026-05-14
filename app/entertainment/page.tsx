@@ -68,7 +68,7 @@ export default async function EntertainmentPage() {
         title: q.title,
         description: q.excerpt || 'تحدي جديد من إنتاج الذكاء الاصطناعي لـ DX7 Sport',
         category: 'AI Challenge',
-        image: q.featuredImage || '/hero/entertainment_hub.webp',
+        image: q.featuredImage?.startsWith('data:') ? '/hero/entertainment_hub.webp' : (q.featuredImage || '/hero/entertainment_hub.webp'),
         data: quizData
       };
     }).filter(q => q.data) // Only show if valid data exists

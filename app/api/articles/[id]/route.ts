@@ -44,6 +44,7 @@ export async function GET(
 
     return NextResponse.json({
       ...article,
+      featuredImage: article.featuredImage?.startsWith('data:') ? null : article.featuredImage,
       sources: articleSources,
     });
   } catch (error) {
