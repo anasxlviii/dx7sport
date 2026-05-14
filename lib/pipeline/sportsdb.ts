@@ -1,4 +1,16 @@
 const SPORTSDB_API_KEY = '3';
+const CACHE_TTL = 2 * 60 * 60 * 1000;
+
+const cache = new Map<string, { data: any; expiry: number }>();
+
+function withCache<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const cached = cache.get(key);
+  if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data as T);
+  return fn().then(data => {
+    cache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+    return data;
+  });
+}
 
 export interface SportsEvent {
   idEvent: string;
@@ -59,6 +71,10 @@ async function fetchJson(url: string): Promise<any> {
 }
 
 export async function getLatestResults(leagueId = TOP_LEAGUES.PREMIER_LEAGUE): Promise<SportsEvent[]> {
+  return withCache(`getLatestResults:${leagueId}`, () => getLatestResultsImpl(leagueId));
+}
+
+async function getLatestResultsImpl(leagueId: string): Promise<SportsEvent[]> {
   if (leagueId === '4344') return [];
   try {
     const url = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventspastleague.php?id=${leagueId}`;
@@ -71,6 +87,10 @@ export async function getLatestResults(leagueId = TOP_LEAGUES.PREMIER_LEAGUE): P
 }
 
 export async function getTopLeaguesScores(): Promise<SportsEvent[]> {
+  return withCache('getTopLeaguesScores', () => getTopLeaguesScoresImpl());
+}
+
+async function getTopLeaguesScoresImpl(): Promise<SportsEvent[]> {
   const featuredLeagues = [
     TOP_LEAGUES.PREMIER_LEAGUE, TOP_LEAGUES.LA_LIGA, TOP_LEAGUES.SERIE_A,
     TOP_LEAGUES.BUNDESLIGA, TOP_LEAGUES.LIGUE_1, TOP_LEAGUES.CHAMPIONS_LEAGUE,
