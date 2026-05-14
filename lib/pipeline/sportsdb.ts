@@ -44,10 +44,18 @@ const LEAGUE_BADGES: Record<string, string> = {
   '4346': 'https://r2.thesportsdb.com/images/media/league/badge/dqo6r91549878326.png',
 };
 
+const FETCH_TIMEOUT = 5000;
+
 async function fetchJson(url: string): Promise<any> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`SportsDB HTTP ${res.status}`);
-  return res.json();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`SportsDB HTTP ${res.status}`);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function getLatestResults(leagueId = TOP_LEAGUES.PREMIER_LEAGUE): Promise<SportsEvent[]> {

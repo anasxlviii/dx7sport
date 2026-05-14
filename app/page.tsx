@@ -12,25 +12,30 @@ import { AdScriptInjector } from '@/components/AdScriptInjector';
 
 export const revalidate = 300;
 
-async function getData(retries = 5) {
+const DATA_TIMEOUT = 15000;
+
+async function getData() {
   if (!db) return { allArticles: [], settingsMap: {}, scores: [] };
-  for (let i = 0; i < retries; i++) {
+  for (let i = 0; i < 3; i++) {
     try {
-      const [allArticles, allSettings, scores] = await Promise.all([
-        db.select({ id: articlesTable.id, title: articlesTable.title, slug: articlesTable.slug, excerpt: articlesTable.excerpt, featuredImage: articlesTable.featuredImage, category: articlesTable.category, status: articlesTable.status, publishedAt: articlesTable.publishedAt, createdAt: articlesTable.createdAt }).from(articlesTable).where(eq(articlesTable.status, 'published')).orderBy(desc(articlesTable.id)).limit(40),
-        db.select().from(settings),
-        getTopLeaguesScores()
+      const result = await Promise.race([
+        Promise.all([
+          db.select({ id: articlesTable.id, title: articlesTable.title, slug: articlesTable.slug, excerpt: articlesTable.excerpt, featuredImage: articlesTable.featuredImage, category: articlesTable.category, status: articlesTable.status, publishedAt: articlesTable.publishedAt, createdAt: articlesTable.createdAt }).from(articlesTable).where(eq(articlesTable.status, 'published')).orderBy(desc(articlesTable.id)).limit(40),
+          db.select().from(settings),
+          getTopLeaguesScores()
+        ]),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Homepage data fetch timed out')), DATA_TIMEOUT))
       ]);
+      const [allArticles, allSettings, scores] = result;
 
       const settingsMap: Record<string, string> = {};
       allSettings.forEach(s => settingsMap[s.key] = s.value || '');
 
       return { allArticles, settingsMap, scores };
     } catch (err) {
-      console.error(`[Homepage] DB error (attempt ${i + 1}/${retries}):`, err);
-      if (i === retries - 1) return { allArticles: [], settingsMap: {}, scores: [] };
-      const delay = Math.min(1000 * Math.pow(2, i), 5000); 
-      await new Promise(resolve => setTimeout(resolve, delay));
+      console.error(`[Homepage] Fetch error (attempt ${i + 1}/3):`, err);
+      if (i === 2) return { allArticles: [], settingsMap: {}, scores: [] };
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
   return { allArticles: [], settingsMap: {}, scores: [] };

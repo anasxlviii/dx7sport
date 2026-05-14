@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DX7 SPORT — منسّق المقالات الذكي</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:2rem}
+header{margin-bottom:2rem}
+header h1{color:#b3d400;font-size:1.5rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em}
+header p{color:#666;font-size:0.75rem;margin-top:0.5rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:768px){.grid{grid-template-columns:1fr}}
+.card{background:#111;border:1px solid #222;padding:1.5rem}
+.card label{display:block;color:#b3d400;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem}
+textarea{width:100%;background:#000;border:1px solid #222;color:#ccc;font-family:'Courier New',monospace;font-size:0.875rem;padding:1rem;resize:vertical;min-height:500px;outline:none;transition:border .2s}
+textarea:focus{border-color:#b3d400}
+.output-area{background:#000;border:1px solid #222;color:#ccc;font-family:'Courier New',monospace;font-size:0.875rem;padding:1rem;min-height:500px;white-space:pre-wrap;overflow-y:auto;line-height:1.7;direction:ltr;text-align:left}
+.output-rtl{direction:rtl;text-align:right}
+.toolbar{display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap}
+button{padding:0.6rem 1.2rem;font-size:0.7rem;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;border:none;cursor:pointer;transition:all .2s}
+.btn-primary{background:#b3d400;color:#000}
+.btn-primary:hover{background:#fff}
+.btn-secondary{background:transparent;color:#b3d400;border:1px solid #b3d400}
+.btn-secondary:hover{background:#b3d400;color:#000}
+.btn-copy{background:transparent;color:#666;border:1px solid #444}
+.btn-copy:hover{background:#444;color:#fff}
+.status{font-size:0.7rem;color:#666;margin-top:0.5rem}
+.status .ok{color:#b3d400}
+.status .err{color:#ff4444}
+.rules-panel{background:#111;border:1px solid #222;padding:1.5rem;margin-top:1.5rem}
+.rules-panel h3{color:#b3d400;font-size:0.7rem;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:1rem}
+.rules-panel table{width:100%;border-collapse:collapse;font-size:0.8rem}
+.rules-panel th{color:#666;font-weight:700;text-align:right;padding:0.5rem;border-bottom:1px solid #222;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em}
+.rules-panel td{padding:0.5rem;border-bottom:1px solid #1a1a1a;color:#999}
+.rules-panel td code{background:#000;padding:0.15rem 0.4rem;font-size:0.75rem;color:#b3d400}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🪄 منسّق المقالات الذكي</h1>
+    <p>الصق النص الخام — يحلّل التركيب ويهيكل المقال تلقائياً بأسلوب DX7 SPORT</p>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <label>النص الخام</label>
+      <div class="toolbar">
+        <button class="btn-primary" onclick="format()">🪄 تنسيق</button>
+        <button class="btn-secondary" onclick="clearInput()">مسح</button>
+        <button class="btn-copy" onclick="pasteExample1()">مثال 1</button>
+        <button class="btn-copy" onclick="pasteExample2()">مثال 2</button>
+      </div>
+      <textarea id="inputText" placeholder="الصق المقال الخام هنا بأي صيغة..."></textarea>
+    </div>
+    <div class="card">
+      <label>الناتج (Markdown بتنسيق DX7)</label>
+      <div class="toolbar">
+        <button class="btn-copy" onclick="copyOutput()">📋 نسخ</button>
+      </div>
+      <div id="output" class="output-area">بانتظار النص...</div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <div class="rules-panel">
+    <h3>قواعد التنسيق التلقائي</h3>
+    <table>
+      <thead><tr><th>العنصر</th><th>كيف يعمل</th></tr></thead>
+      <tbody>
+        <tr><td>العنوان الرئيسي</td><td>يكتشف أول سطر بارز كـ <code># عنوان</code></td></tr>
+        <tr><td>الأقسام</td><td>يكتشف السطور القصيرة المعزولة التي تليها فقرات طويلة — يحوّلها إلى <code>## قسم</code></td></tr>
+        <tr><td>الأقسام الفرعية</td><td>يكتشف السطور المنتهية بـ : أو السطور القصيرة جداً داخل الأقسام ← <code>###</code></td></tr>
+        <tr><td>أسماء اللاعبين</td><td>قاعدة بيانات تضم +120 لاعباً ونادياً — يوضع <code>**عريض**</code> تلقائياً</td></tr>
+        <tr><td>أسماء الأندية</td><td>برشلونة، ريال مدريد، ليفربول، مانشستر سيتي... ← <code>**عريض**</code></td></tr>
+        <tr><td>النتائج والأهداف</td><td>2-1، 3-0، 4-2 ← <code>**عريض**</code></td></tr>
+        <tr><td>التواريخ والسنوات</td><td>2024، 2026، 1998 ← <code>**عريض**</code></td></tr>
+        <tr><td>الإحصائيات</td><td>يكتشف الأسطر ذات الأولوية: %، €، $، أرقام كبيرة، مليار/مليون ← يحوّلها إلى <code>> اقتباس</code></td></tr>
+        <tr><td>التصريحات والاقتباسات</td><td>يكتشف الجمل المحتوية على "قال" أو "أكد" أو بين علامتي اقتباس ← <code>> اقتباس</code></td></tr>
+        <tr><td>القوائم</td><td>يكتشف الترقيم (1. 2. 3.) والرموز النقطية ← <code>- عنصر</code></td></tr>
+        <tr><td>الفواصل</td><td>يضيف <code>---</code> بين الأقسام الرئيسية تلقائياً</td></tr>
+        <tr><td>الأرقام</td><td>يصحح الأرقام الشرقية (١٢٣) إلى غربية (123)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ===================== KNOWLEDGE BASE =====================
+
+const PLAYERS = [
+  // Stars
+  'كريستيانو رونالدو', 'رونالدو', 'ليونيل ميسي', 'ميسي', 'نيمار دا سيلفا', 'نيمار',
+  'كيليان مبابي', 'مبابي', 'إيرلينغ هالاند', 'هالاند', 'محمد صلاح', 'صلاح',
+  'فينيسيوس جونيور', 'فينيسيوس', 'جود بيلينغهام', 'بيلينغهام',
+  'لامين جمال', 'الأمين جمال', 'جمال', 'يحيى', 'لوكا مودريتش', 'مودريتش',
+  'توني كروس', 'كروس', 'روبرت ليفاندوفسكي', 'ليفاندوفسكي',
+  'كيفن دي بروين', 'دي بروين', 'محمد سلامة', 'محمد الكويت',
+  'كريم بنزيما', 'بنزيما', 'ساديو ماني', 'ماني', 'فيرجيل فان دايك', 'فان دايك',
+  'أليسون بيكر', 'أليسون', 'تيبو كورتوا', 'كورتوا',
+  'جيرارد بيكيه', 'بيكيه', 'سيرخيو راموس', 'راموس', 'راموس',
+  'توماس مولر', 'مولر', 'مانويل نوير', 'نوير',
+  'أنطوان غريزمان', 'غريزمان', 'غريزمان',
+  'هاري كين', 'كين', 'مهند صلاح', 'رياض محرز', 'محرز',
+  'حكيم زياش', 'زياش', 'أشرف حكيمي', 'حكيمي',
+  'أليكس غريمالدو', 'غريمالدو',
+  'رافينيا', 'بيدري', 'غافي', 'كوبارسي', 'بالدي',
+  'رودريغو غوس', 'رودريغو', 'فالفيردي', 'كامافينغا', 'تشواميني',
+  'إبراهيما كوناتي', 'كوناتي', 'فيرغيل فان دايك',
+  'محمد النني', 'النني', 'محمود تريزيغيه', 'تريزيغيه', 'مصطفى محمد',
+  'إيدن هازارد', 'هازارد', 'مهند علي',
+  'أوزيل', 'مسعود أوزيل', 'بول بوغبا', 'بوغبا',
+  'أندريا بيرلو', 'بيرلو', 'توتي', 'فرانشيسكو توتي',
+  'داني ألفيس', 'تشافي', 'تشافي هيرنانديز', 'أندريس إنييستا', 'إنييستا',
+  'لويس سواريز', 'سواريز', 'سيرجيو أغويرو', 'أغويرو',
+  'تير شتيغن', 'مارك أندريه تير شتيغن',
+  'أوباميانغ', 'بيير إيميريك أوباميانغ',
+  'لامين يامال', 'يامال',
+  'أليكسندر أرنولد', 'ترينت ألكسندر أرنولد',
+  'جاك غريليش', 'غريليش', 'فيل فودين', 'فودين',
+  'بوكايو ساكا', 'ساكا', 'ديكلان رايس', 'رايس',
+  'مارتين أوديغارد', 'أوديغارد',
+  'فكتور أوسيمين', 'أوسيمين', 'خفيتشا كفاراتسخيليا', 'كفاراتسخيليا',
+  'رفائيل لياو', 'لياو', 'تيو هرنانديز',
+  'لوتارو مارتينيز', 'لوتارو', 'هاكان تشالهانوغلو',
+  'سناء', 'جوهر', 'نبيل',
+  'ميلان', 'أيكونيه', 'ظاظا',
+  'إبراهيموفيتش', 'زلاتان إبراهيموفيتش',
+  'أنسو فاتي', 'فاتي', 'فيران توريس',
+  'جواو فيليكس', 'جواو كانسيلو',
+  'برناردو سيلفا', 'جاك غريليش',
+  'كاي هافيرتس', 'هافيرتس',
+  'غابرييل جيسوس', 'جيسوس',
+  'جيمي فاردي', 'فاردي',
+  'برونو فيرنانديز', 'برونو',
+  'ماركوس راشفورد', 'راشفورد',
+  'كريستيان إريكسن', 'إريكسن',
+  'كاسيميرو', 'فاران',
+];
+
+const TEAMS = [
+  // Saudi
+  'النصر', 'الهلال', 'الاتحاد', 'الأهلي', 'الشباب', 'الفتح', 'التعاون', 'الوحدة', 'الخليج', 'ضمك', 'الرائد', 'الفيحاء', 'أبها', 'الاتفاق', 'الحزم', 'الأخدود', 'الرياض', 'العروبة', 'الخلود', 'القادسية',
+  // England
+  'ليفربول', 'مانشستر سيتي', 'مانشستر يونايتد', 'آرسنال', 'تشيلسي', 'توتنهام', 'نيوكاسل', 'أستون فيلا', 'برايتون', 'وست هام', 'كريستال بالاس', 'وولفرهامبتون', 'فولهام', 'نوتينغهام فورست', 'إيفرتون', 'برينتفورد', 'بورنموث', 'ساوثهامبتون', 'نورويتش سيتي', 'ليدز يونايتد', 'ليستر سيتي',
+  // Spain
+  'برشلونة', 'ريال مدريد', 'أتلتيكو مدريد', 'أتليتيكو مدريد', 'إشبيلية', 'ريال سوسيداد', 'ريال بيتيس', 'أثلتيك بلباو', 'فياريال', 'فالنسيا', 'أوساسونا', 'خيتافي', 'سيلتا فيغو', 'جيرونا', 'ريال مايوركا', 'رايو فايكانو', 'غرناطة', 'قادش', 'ألميريا', 'إلتشي', 'إسبانيول', 'ليغانيس', 'بلد الوليد',
+  // Italy
+  'ميلان', 'إنتر ميلان', 'إنتر', 'يوفنتوس', 'نابولي', 'روما', 'لاتسيو', 'أتالانتا', 'فيورنتينا', 'بولونيا', 'تورينو', 'أودينيزي', 'جنوة', 'ساسولو', 'إمبولي', 'فيرونا', 'ليتشي', 'كالياري', 'مونزا', 'فنيزيا', 'بارما', 'كومو',
+  // Germany
+  'بايرن ميونخ', 'بايرن', 'بوروسيا دورتموند', 'دورتموند', 'لايبزيغ', 'باير ليفركوزن', 'ليفركوزن', 'آينتراخت فرانكفورت', 'فولفسبورغ', 'فيردر بريمن', 'ماينتس', 'بوروسيا مونشنغلادباخ', 'يونيون برلين', 'أوغسبورغ', 'شتوتغارت', 'هوفنهايم', 'كولن', 'بوخوم', 'هايدنهايم', 'سانت باولي', 'هولشتاين كيل',
+  // France
+  'باريس سان جيرمان', 'سان جيرمان',   'مارسيليا', 'موناكو', 'ليون', 'لنس', 'نيس', 'ليل', 'رين', 'ستاد رين', 'تولوز', 'ستراسبورغ', 'أنجيه', 'مونبلييه', 'نانت', 'ستاد دو ريمس', 'بريست', 'لوهافر', 'أوكسير', 'سانت إتيان',
+  // Portugal
+  'بنفيكا', 'سبورتينغ لشبونة', 'سبورتينغ', 'سبورتنج', 'بورتو', 'سبورتينغ براغا', 'براغا',
+  // Netherlands
+  'أياكس', 'بي إس في آيندهوفن', 'فينورد', 'تفينتي', 'أوترخت', 'ألكمار',
+  // Other
+  'غلطة سراي', 'فنربخشة', 'بشكتاش', 'سيلتيك', 'رينجرز', 'كلوب بروج',
+  'الأهلي المصري', 'الزمالك', 'بيراميدز', 'الوداد', 'الرجاء',
+];
+
+const LEAGUES = [
+  'الدوري الإنجليزي الممتاز', 'البريميرليغ', 'الليغا', 'الدوري الإسباني', 'الدوري الإيطالي', 'الكالتشيو', 'الدوري الألماني', 'البوندسليغا', 'الدوري الفرنسي', 'الليغ 1', 'دوري أبطال أوروبا', 'تشامبيونز ليغ', 'دوري أبطال آسيا', 'الدوري السعودي', 'روشن', 'دوري روشن', 'الدوري المصري', 'كأس العالم', 'المونديال', 'كأس أمم أفريقيا', 'الكان', 'كأس أمم أوروبا', 'اليورو', 'كأس الملك', 'كأس خادم الحرمين الشريفين',
+  'الدوري الأوروبي', 'يوروبا ليغ', 'دوري المؤتمر الأوروبي', 'كونفرنس ليغ',
+  'كأس السوبر', 'كأس العالم للأندية',
+  'تصفيات كأس العالم', 'التصفيات الآسيوية', 'التصفيات الأفريقية',
+];
+
+const POSITIONS = ['حارس مرمى', 'حارس', 'مدافع', 'ظهير أيسر', 'ظهير أيمن', 'قلب دفاع', 'لاعب وسط', 'وسط ميدان', 'وسط مهاجم', 'وسط مدافع', 'محور', 'جناح', 'مهاجم', 'رأس حربة', 'صانع ألعاب'];
+
+// Common football terms that should be italic or special
+const FOOTBALL_TERMS = [
+  'تيكي تاكا', 'جيجن بريس', 'أوفسايد', 'تسلل', 'ركلة جزاء', 'ضربة جزاء', 'بنالتي',
+  'ضربة حرة', 'ركلة حرة', 'ضربة ركنية', 'ركنية', 'رمية تماس', 'ضربة مرمى',
+  'بطاقة صفراء', 'بطاقة حمراء', 'تغيير', 'تبديل', 'الوقت بدل الضائع',
+  'الشوط الأول', 'الشوط الثاني', 'الأشواط الإضافية', 'ركلات الترجيح',
+  'القطر', 'العرضية', 'التمريرة الحاسمة', 'التمريرة المفتاحية',
+  'الاستحواذ', 'الضغط', 'الارتداد', 'المرتد', 'الهجمة المرتدة',
+  'الممرر', 'المساحة', 'العمق', 'التكتيك', 'التشكيلة',
+  '4-3-3', '4-4-2', '3-5-2', '4-2-3-1', '3-4-3',
+];
+
+// ===================== CORE ENGINE =====================
+
+function analyzeStructure(lines) {
+  // Classify each line
+  const classified = lines.map((line, i) => {
+    const text = line.trim();
+    if (!text) return { type: 'blank', text, index: i };
+
+    const prev = i > 0 ? lines[i-1].trim() : '';
+    const next = i < lines.length - 1 ? lines[i+1].trim() : '';
+    const prevPrev = i > 1 ? lines[i-2].trim() : '';
+
+    const type = classifyLine(text, prev, next, prevPrev, i, lines.length);
+    return { type, text, index: i, prev, next, prevPrev };
+  });
+
+  return classified;
+}
+
+function classifyLine(text, prev, next, prevPrev, idx, total) {
+  // Already formatted
+  if (text.startsWith('#')) return 'already-heading';
+  if (text.startsWith('>')) return 'already-quote';
+  if (text.startsWith('- ')) return 'already-list';
+  if (/^\d+[\.\)]\s/.test(text)) return 'already-list';
+
+  // Main title: first line, or a standalone line at the top that looks like a title
+  if (idx === 0 || (idx < 3 && text.length < 100 && !text.endsWith('.') && !text.endsWith('؟') && !text.endsWith('!') && next && next.length > 30)) {
+    if (idx === 0) return 'main-title';
+  }
+
+  // Title-like: first line in a section, separated by blank lines from previous
+  const isStandalone = prev === '' || prev.endsWith('.') || prev.endsWith('!') || prev.endsWith('؟') || prev.endsWith(':');
+  const isShort = text.length < 90;
+  const hasLongNext = next.length > 25;
+
+  if (isStandalone && isShort && hasLongNext && !text.endsWith('.') && !text.endsWith('؟') && !text.endsWith('!')) {
+    return 'heading';
+  }
+
+  // Sub-heading: ends with colon
+  if (text.endsWith(':') && text.length < 60) {
+    return 'sub-heading';
+  }
+
+  // Emphatic short line (3-5 words) followed by content
+  if (text.split(' ').length <= 7 && text.length < 50 && !text.endsWith('.') && hasLongNext && isStandalone) {
+    return 'sub-heading';
+  }
+
+  // Stat line: contains percentages, money, large numbers
+  if (isImportantStat(text)) return 'stat';
+
+  // Quote: contains quotation marks or attribution
+  if (isQuote(text)) return 'quote';
+
+  // List item
+  if (/^[•●■\-–—]\s/.test(text)) return 'list';
+  if (/^\d+[\.\)][\s]/.test(text)) return 'list';
+  if (/^[a-zA-Z][\.\)]\s/.test(text)) return 'list';
+
+  // Default: paragraph text
+  return 'paragraph';
+}
+
+function isImportantStat(text) {
+  const statPatterns = [
+    /%/, /€/, /\$/, /£/, /مليار/, /مليون/, /ألف/,
+    /\d+[,\.]\d+/, /\d{4,}/,
+    /إحصائية|إحصاءات|احصائيات|إحصائياً/,
+    /سجل|أحرز|هدف|هدّاف/,
+    /ترتيب|مرتبة|مركز/,
+    /صفقة|انتقال|عقد|شرط جزائي/,
+    /جمهور|حضور|مشاهد/,
+    /مباراة|مواجهة|لقاء/,
+  ];
+  if (text.length > 150) return false; // too long for a quote
+  return statPatterns.some(p => p.test(text));
+}
+
+function isQuote(text) {
+  const quotePatterns = [
+    /[""«»]/, /قال|أكد|أضاف|صرّح|أعلن|كشف|ذكر|أوضح|أشار/,
+    /بحسب|وفقاً ل|على حد|على لسان|تصريح|تصريحات/,
+    /يرى|يعتقد|يؤمن|يرى أن|يرى بأن/,
+  ];
+  if (text.length > 200) return false;
+  return quotePatterns.some(p => p.test(text));
+}
+
+function isValidSectionHeading(text, prevText) {
+  // Check if previous text ends a paragraph (period, question, exclamation)
+  const prevEnded = !prevText || prevText.endsWith('.') || prevText.endsWith('!') || prevText.endsWith('؟');
+  // Check if this text looks like a heading (short, no ending punctuation)
+  const looksLikeHeading = text.length < 90 && !text.endsWith('.') && !text.endsWith('؟') && !text.endsWith('!');
+  // Check it's not just a fragment
+  const hasSubstance = text.split(' ').length >= 3;
+  return prevEnded && looksLikeHeading && hasSubstance;
+}
+
+function isPlayerName(word) {
+  const clean = word.replace(/[،,\.\s]/g, '').trim();
+  if (clean.length < 2) return false;
+  for (const name of PLAYERS) {
+    if (clean.includes(name) || name.includes(clean)) return true;
+  }
+  return false;
+}
+
+function isTeamName(text) {
+  for (const team of TEAMS) {
+    if (text.includes(team)) return true;
+  }
+  return false;
+}
+
+// ===================== MAIN FORMATTER =====================
+
+function format() {
+  const input = document.getElementById('inputText');
+  const output = document.getElementById('output');
+  const status = document.getElementById('status');
+  let text = input.value;
+
+  if (!text.trim()) {
+    output.textContent = '⚠️ الصق النص أولاً';
+    status.innerHTML = '<span class="err">خطأ: لا يوجد نص</span>';
+    return;
+  }
+
+  // Pre-processing: normalize Arabic-Indic numerals, clean whitespace
+  text = normalizeNumerals(text);
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  text = text.replace(/\ufeff/g, ''); // BOM
+
+  const rawLines = text.split('\n');
+  const lines = rawLines.map(l => l.trim());
+  const classified = analyzeStructure(lines);
+
+  // Check if we got meaningful structure
+  const headingCount = classified.filter(c => c.type === 'heading' || c.type === 'main-title').length;
+  
+  let result = [];
+  let lastType = '';
+  let sectionCount = 0;
+
+  for (let i = 0; i < classified.length; i++) {
+    const { type, text: lineText, prev } = classified[i];
+    
+    if (type === 'blank') {
+      result.push('');
+      lastType = 'blank';
+      continue;
+    }
+
+    // Main title
+    if (type === 'main-title') {
+      result.push(`# ${boldEntities(lineText)}`);
+      lastType = 'main-title';
+      continue;
+    }
+
+    // Heading
+    if (type === 'heading' && lineText.length < 100) {
+      sectionCount++;
+      if (sectionCount > 1) result.push('---');
+      result.push('');
+      result.push(`## ${boldEntities(lineText)}`);
+      result.push('');
+      lastType = 'heading';
+      continue;
+    }
+
+    // Sub-heading
+    if (type === 'sub-heading') {
+      const clean = lineText.replace(/:$/, '');
+      result.push('');
+      result.push(`### ${boldEntities(clean)}`);
+      result.push('');
+      lastType = 'sub-heading';
+      continue;
+    }
+
+    // Already formatted
+    if (type === 'already-heading' || type === 'already-quote' || type === 'already-list') {
+      result.push(lineText);
+      lastType = type;
+      continue;
+    }
+
+    // Stat line → blockquote
+    if (type === 'stat') {
+      result.push(`> ${boldEntities(lineText)}`);
+      lastType = 'stat';
+      continue;
+    }
+
+    // Quote line → blockquote
+    if (type === 'quote') {
+      result.push(`> ${boldEntities(lineText)}`);
+      lastType = 'quote';
+      continue;
+    }
+
+    // List item
+    if (type === 'list') {
+      const clean = lineText.replace(/^[•●■\-–—]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
+      result.push(`- ${boldEntities(clean)}`);
+      lastType = 'list';
+      continue;
+    }
+
+    // Paragraph - bold entities, handle spacing
+    if (type === 'paragraph') {
+      let formatted = boldEntities(lineText);
+      
+      // Add blank line before paragraph if previous was a heading or quote or list
+      if (lastType === 'heading' || lastType === 'sub-heading' || lastType === 'stat' || lastType === 'quote') {
+        result.push('');
+      }
+      
+      result.push(formatted);
+      lastType = 'paragraph';
+      continue;
+    }
+
+    // Default: push as-is
+    result.push(lineText);
+    lastType = type;
+  }
+
+  // Post-processing: cleanup
+  let outputText = result.join('\n');
+
+  // Remove duplicate blank lines (max 2)
+  outputText = outputText.replace(/\n{3,}/g, '\n\n');
+
+  // Remove duplicate ---
+  outputText = outputText.replace(/---\n\n---/g, '---\n');
+
+  // Ensure spacing around ---
+  outputText = outputText.replace(/([^\n])\n---/g, '$1\n\n---');
+  outputText = outputText.replace(/---\n([^\n])/g, '---\n\n$1');
+
+  // Ensure ## headings have blank line before (but not after ---)
+  outputText = outputText.replace(/([^\n])\n(## )/g, '$1\n\n$2');
+
+  // Convert remaining Arabic-Indic numerals (should be caught by normalizeNumerals but just in case)
+  outputText = normalizeNumerals(outputText);
+
+  // Fix: remove bold inside headings (it's redundant)
+  outputText = outputText.replace(/^(#+ .*?)\*\*(.+?)\*\*/gm, '$1$2');
+
+  output.textContent = outputText;
+  output.classList.add('output-rtl');
+
+  const stats = `✓ تم تنسيق ${lines.filter(l => l.trim()).length} سطر | ${headingCount} عنوان | ${sectionCount} قسم`;
+  status.innerHTML = `<span class="ok">${stats}</span>`;
+}
+
+function boldEntities(text) {
+  let result = text;
+
+  // Bold scores (e.g., 2-1, 3-0, 4-2, 1-1)
+  result = result.replace(/\b(\d+[\/\-–]\d+)\b/g, '**$1**');
+
+  // Bold years (4 digits, not in a larger number)
+  result = result.replace(/\b(1[4-9]\d{2}|20[0-3]\d)\b/g, '**$1**');
+
+  // Bold team names (longer match first to avoid partial matches)
+  const sortedTeams = [...TEAMS].sort((a, b) => b.length - a.length);
+  for (const team of sortedTeams) {
+    const regex = new RegExp(`(?<=^|["\\s،\\.\\?!\\(\\[{-])(${team})(?=["\\s،\\.\\?!\\)\\]}-]|$)`, 'g');
+    result = result.replace(regex, '**$1**');
+  }
+
+  // Bold player names (longer match first)
+  const sortedPlayers = [...PLAYERS].sort((a, b) => b.length - a.length);
+  for (const name of sortedPlayers) {
+    const regex = new RegExp(`(?<=^|["\\s،\\.\\?!\\(\\[{-])(${name})(?=["\\s،\\.\\?!\\)\\]}-]|$)`, 'g');
+    result = result.replace(regex, '**$1**');
+  }
+
+  // Bold leagues and competitions
+  for (const league of LEAGUES) {
+    const regex = new RegExp(`(?<=^|["\\s،\\.\\?!\\(\\[{-])(${league})(?=["\\s،\\.\\?!\\)\\]}-]|$)`, 'g');
+    result = result.replace(regex, '**$1**');
+  }
+
+  // Cleaup: remove consecutive bold markers
+  result = result.replace(/\*\*\*\*/g, '');
+
+  return result;
+}
+
+function normalizeNumerals(text) {
+  // Arabic-Indic numerals (١٢٣) → Western (123)
+  const arabicIndic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const western = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  for (let i = 0; i < 10; i++) {
+    text = text.replace(new RegExp(arabicIndic[i], 'g'), western[i]);
+  }
+  // Persian numerals (۰۱۲۳)
+  const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  for (let i = 0; i < 10; i++) {
+    text = text.replace(new RegExp(persian[i], 'g'), western[i]);
+  }
+  return text;
+}
+
+// ===================== UI HELPERS =====================
+
+function copyOutput() {
+  const output = document.getElementById('output');
+  navigator.clipboard.writeText(output.textContent).then(() => {
+    const status = document.getElementById('status');
+    status.innerHTML = '<span class="ok">✓ تم النسخ!</span>';
+    setTimeout(() => format(), 2000);
+  }).catch(() => {
+    // Fallback
+    const range = document.createRange();
+    range.selectNode(output);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+  });
+}
+
+function clearInput() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('output').textContent = 'بانتظار النص...';
+  document.getElementById('output').classList.remove('output-rtl');
+  document.getElementById('status').innerHTML = '';
+}
+
+function pasteExample1() {
+  document.getElementById('inputText').value = `صراع الهوية والمصلحة: الأمين جمال ومحمد صلاح في ميزان القضية الفلسطينية
+
+في الأيام القليلة الماضية من شهر مايو 2026، اشتعلت منصات التواصل الاجتماعي بمقارنة لم تكن فنية هذه المرة، بل أخلاقية وإنسانية. فبينما كان العالم يترقب مواقف النجوم المسلمين ذوي الأصول العربية، برز تباين حاد بين جرأة الشباب وحسابات النجومية المعقدة.
+
+الفتى الذهبي الذي لم يخشَ العواقب
+
+أثبت الأمين جمال، النجم الشاب لنادي برشلونة، أن المبادئ لا ترتبط بالعمر. فخلال احتفالات التتويج الأخيرة في شوارع إسبانيا، اختار جمال أن يكون صوته مسموعاً للعالم أجمع بوضوح تام.
+
+موقف بلا تردد:
+
+رفع الأمين جمال العلم الفلسطيني أمام ملايين المتابعين، في رسالة مباشرة تعكس تضامنه مع القضية دون خوف من "لوبيات" الرعاة أو ضغوط الإدارة الرياضية.
+
+تجاوز حسابات العقود:
+
+بينما يرى البعض أن العقود الإعلانية قيد، يرى جمال أن تأثيره كلاعب شاب هو وسيلة لنصرة القضايا العادلة، وهو ما أكسبه احتراماً شعبياً واسعاً.
+
+الملك المصري وتحدي الصمت الاستراتيجي
+
+على الجانب الآخر، يواجه محمد صلاح، أسطورة ليفربول، انتقادات متزايدة بسبب ما يصفه البعض بـ "الحياد السلبي". فرغم قيمته السوقية وتأثيره العالمي الذي يفوق جمال بمراحل، إلا أن مواقفه ظلت تتسم بالدبلوماسية المفرطة.
+
+الخوف على الشراكات:
+
+يُحلل الكثيرون صمت صلاح أو تأخر ردود فعله كنوع من الحفاظ على شبكة الرعاة العالميين الذين يمثلهم. يمتلك صلاح عقوداً مع علامات تجارية عالمية تُقدّر بملايين الدولارات.
+
+غياب القيادة الأخلاقية:
+
+يرى قطاع من الجمهور أن صلاح ضيع فرصة تاريخية لاستغلال منصته العالمية لإحداث فارق حقيقي، مفضلاً البقاء في "المنطقة الآمنة".
+
+مفارقة المواقف: الجيل الجديد يكسر القيد
+
+إن المقارنة الحالية تضعنا أمام حقيقة جديدة في عام 2026؛ وهي أن الجيل الجديد من اللاعبين ذوي الأصول العربية في أوروبا أصبح أكثر جرأة في التعبير عن هويته.
+
+الشجاعة مقابل الحذر: الأمين جمال واجه المخاوف مبكراً، بينما صلاح لا يزال يوازن في خطواته حتى في نهاية مسيرته.
+
+التأثير الحقيقي: العبرة ليست بامتلاك ملايين المتابعين، بل بالقدرة على استخدام هؤلاء المتابعين لخدمة قضية إنسانية في وقت الأزمات.`;
+  format();
+}
+
+function pasteExample2() {
+  document.getElementById('inputText').value = `كلاسيكو الأرض يعود: ريال مدريد وبرشلونة في مواجهة حاسمة على صدارة الليغا
+
+تتجه أنظار عشاق كرة القدم صوب ملعب سانتياغو برنابيو، حيث يحتضن الكلاسيكو المنتظر بين ريال مدريد وبرشلونة في قمة الجولة الثانية والثلاثين من الدوري الإسباني. المباراة التي تقام مساء السبت المقبل تحمل في طياتها الكثير من الإثارة والتشويق، خاصة في ظل التنافس الشرس على الصدارة الذي يشهده الموسم الحالي.
+
+يدخل ريال مدريد المباراة بمعنويات مرتفعة بعد سلسلة من الانتصارات المتتالية، حيث لم يخسر الفريق في آخر 8 مباريات في جميع المسابقات. ويعول المدرب كارلو أنشيلوتي على نجومه وفي مقدمتهم كيليان مبابي الذي سجل 12 هدفاً في آخر 10 مباريات، إلى جانب فينيسيوس جونيور وجود بيلينغهام. ويمتلك الريال أقوى خط هجوم في الدوري بـ 68 هدفاً.
+
+أما برشلونة فيدخل المباراة بعد تعثره في الجولة الماضية بالتعادل مع ريال بيتيس 1-1، وهي نتيجة أبعده عن الصدارة بفارق نقطتين. ويسعى المدرب هانسي فليك لاستعادة التوازن والاعتماد على تألق لامين جمال الذي يقدم موسماً استثنائياً بتسجيله 9 أهداف وصناعته 12 هدفاً، إلى جانب خبرة روبرت ليفاندوفسكي هداف الفريق بـ 22 هدفاً هذا الموسم.
+
+تاريخياً، التقى الفريقان في 256 مباراة رسمية، كان الفوز فيها من نصيب ريال مدريد في 104 مباريات، وبرشلونة في 100 مباراة، وتعادلا في 52 مباراة. وسجل ريال مدريد 419 هدفاً مقابل 409 أهداف لبرشلونة.
+
+آخر 5 مواجهات بين الفريقين شهدت تفوقاً واضحاً لبرشلونة الذي فاز في 3 مباريات، مقابل فوز واحد لريال مدريد وتعادل واحد. وكان آخر لقاء في الليغا هذا الموسم قد انتهى بفوز برشلونة 4-0 على ملعب مونتجويك.
+
+نقاط القوة الرئيسية:
+
+ريال مدريد يمتلك أفضلية اللعب على أرضه وأمام جماهيره، حيث فاز في 12 من أصل 15 مباراة على ملعب البرنابيو هذا الموسم.
+
+برشلونة يمتلك أفضلية الاستحواذ على الكرة بمعدل 65%، وهو الأعلى في الدوري.
+
+مبابي هو أخطر لاعب في المرتدات، بينما جمال هو الأكثر صناعة للفرص.
+
+رهان التكتيك:
+
+من المتوقع أن يعتمد أنشيلوتي على الضغط العالي والاعتماد على السرعة في المرتدات عبر مبابي وفينيسيوس. في المقابل، سيسعى فليك للسيطرة على وسط الملعب عبر الاستحواذ الطويل وتضييق المساحات على لاعبي الوسط.
+
+القنوات الناقلة:
+
+تُذاع المباراة عبر شبكة بي إن سبورتس القطرية، بالإضافة إلى تطبيق شاهد.`;
+  format();
+}
+</script>
+</body>
+</html>
