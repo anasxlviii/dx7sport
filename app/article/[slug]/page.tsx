@@ -232,9 +232,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const description = article.excerpt?.replace(/\\n/g, ' ').replace(/\n/g, ' ').slice(0, 160) || article.title;
   
-  // Use relative URLs or let the platform handle it
-  const canonical = `/article/${slug}`;
-  const imageUrl = article.featuredImage || '/default-share.jpg';
+  const imageUrl = article.featuredImage?.startsWith('http')
+    ? article.featuredImage
+    : `https://dx7sport.com${article.featuredImage || '/logo.png'}`;
   
   return {
     title: article.title,
@@ -242,15 +242,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: {
       title: article.title,
       description,
-      url: canonical,
+      url: `https://dx7sport.com/article/${slug}`,
       siteName: 'DX7 SPORT',
       type: 'article',
-      images: [imageUrl],
+      images: [{ url: imageUrl, width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
       images: [imageUrl],
     },
-    metadataBase: null, // Let Next.js handle relative URLs or set it dynamically if needed
   };
 }

@@ -33,10 +33,12 @@ export const metadata: Metadata = {
     locale: 'ar_EG',
     url: 'https://dx7sport.com',
     siteName: 'DX7 SPORT',
+    images: [{ url: 'https://dx7sport.com/logo.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     site: '@dx7sport',
+    images: ['https://dx7sport.com/logo.png'],
   }
 };
 
