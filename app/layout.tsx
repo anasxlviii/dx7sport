@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import { db, getCachedSettings } from '@/lib/db/db';
 import { settings } from '@/lib/db/schema';
 import { AdScriptInjector } from '@/components/AdScriptInjector';
+import PageTracker from '@/components/PageTracker';
 import NextTopLoader from 'nextjs-toploader';
 
 export const revalidate = 3600; // Global default revalidation: 1 hour
@@ -90,6 +91,7 @@ export default async function RootLayout({
           <AdScriptInjector key={idx} code={script} />
         ))}
         
+        <PageTracker />
         <Header />
         <main className="flex-1">{children}</main>
         

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, varchar, integer, unique } from 'drizzle-orm/pg-core';
 
 export const articles = pgTable('articles', {
   id: serial('id').primaryKey(),
@@ -51,5 +51,16 @@ export const settings = pgTable('settings', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const pageViews = pgTable('page_views', {
+  id: serial('id').primaryKey(),
+  path: text('path').notNull(),
+  date: varchar('date', { length: 10 }).notNull(),
+  views: integer('views').notNull().default(1),
+  section: varchar('section', { length: 50 }),
+}, (t) => ({
+  pathDateUnq: unique('page_views_path_date_unique').on(t.path, t.date),
+}));
+
 export type Setting = typeof settings.$inferSelect;
+export type PageView = typeof pageViews.$inferSelect;
 

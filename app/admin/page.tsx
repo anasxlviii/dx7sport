@@ -27,6 +27,18 @@ export default function AdminDashboard() {
   const [pipelineResults, setPipelineResults] = useState<any[]>([]);
   const [showLogModal, setShowLogModal] = useState(false);
   
+  // Stats
+  const [stats, setStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsOpen, setStatsOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(data => { setStats(data); setStatsLoading(false); })
+      .catch(() => setStatsLoading(false));
+  }, []);
+  
   // Selection & Bulk State
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
@@ -212,6 +224,121 @@ export default function AdminDashboard() {
             + إضافة مقال جديد
           </Link>
         </div>
+      </div>
+
+      {/* Stats Section */}
+      <div className="mb-8">
+        <button
+          onClick={() => setStatsOpen(!statsOpen)}
+          className="w-full dxt-card p-6 flex items-center justify-between hover:border-zinc-700 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl">📊</span>
+            <span className="text-sm font-black text-white uppercase tracking-widest">الإحصائيات</span>
+          </div>
+          <span className={`text-zinc-500 transition-transform ${statsOpen ? 'rotate-180' : ''}`}>▼</span>
+        </button>
+        {statsOpen && (
+          <div className="dxt-card p-6 mt-4 border-t border-zinc-900">
+            {statsLoading ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin w-6 h-6 border-2 border-lime border-t-transparent rounded-full"></div>
+              </div>
+            ) : stats ? (
+              <div className="space-y-8">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-zinc-900/50 p-5 border border-zinc-800">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">اليوم</p>
+                    <p className="text-3xl font-black text-white">{stats.todayViews}</p>
+                  </div>
+                  <div className="bg-zinc-900/50 p-5 border border-zinc-800">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">الإجمالي</p>
+                    <p className="text-3xl font-black text-white">{stats.totalViews}</p>
+                  </div>
+                  <div className="bg-zinc-900/50 p-5 border border-zinc-800">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">الأقسام</p>
+                    <p className="text-3xl font-black text-white">{stats.bySection?.length ?? 0}</p>
+                  </div>
+                  <div className="bg-zinc-900/50 p-5 border border-zinc-800">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">أعلى صفحة</p>
+                    <p className="text-3xl font-black text-white truncate" title={stats.topPages?.[0]?.path}>
+                      {stats.topPages?.[0]?.path?.slice(0, 12) || '-'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* By Section */}
+                {stats.bySection?.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-black text-lime uppercase tracking-[0.2em] mb-3">حسب القسم</h3>
+                    <div className="space-y-2">
+                      {stats.bySection.map((s: any) => {
+                        const maxViews = Math.max(...stats.bySection.map((x: any) => x.views));
+                        const pct = maxViews > 0 ? (s.views / maxViews) * 100 : 0;
+                        return (
+                          <div key={s.section} className="flex items-center gap-3">
+                            <span className="w-24 text-[10px] font-bold text-gray-400 uppercase truncate">{s.section || 'other'}</span>
+                            <div className="flex-1 h-5 bg-zinc-900 border border-zinc-800 overflow-hidden">
+                              <div className="h-full bg-lime/30" style={{ width: `${pct}%` }}></div>
+                            </div>
+                            <span className="text-xs font-bold text-white w-12 text-right">{s.views}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Last 7 Days */}
+                {stats.last7Days?.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-black text-lime uppercase tracking-[0.2em] mb-3">آخر 7 أيام</h3>
+                    <div className="flex items-end gap-2 h-24">
+                      {(() => {
+                        const maxViews = Math.max(...stats.last7Days.map((d: any) => d.views));
+                        return stats.last7Days.map((d: any) => {
+                          const pct = maxViews > 0 ? (d.views / maxViews) * 100 : 0;
+                          return (
+                            <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+                              <span className="text-[9px] font-bold text-white">{d.views}</span>
+                              <div className="w-full bg-zinc-900 border border-zinc-800 flex items-end" style={{ height: '64px' }}>
+                                <div className="w-full bg-lime/30" style={{ height: `${pct}%` }}></div>
+                              </div>
+                              <span className="text-[8px] text-gray-500">{d.date.slice(5)}</span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Pages */}
+                {stats.topPages?.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-black text-lime uppercase tracking-[0.2em] mb-3">أكثر الصفحات زيارة</h3>
+                    <div className="space-y-1">
+                      {stats.topPages.map((p: any, i: number) => (
+                        <div key={p.path} className="flex items-center justify-between py-1.5 border-b border-zinc-900 last:border-0">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[9px] font-black text-zinc-600 w-4">{i + 1}</span>
+                            <span className="text-xs font-medium text-gray-400 truncate max-w-xs">{p.path || '/'}</span>
+                          </div>
+                          <span className="text-xs font-bold text-white">{p.views}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 text-xs py-4">
+                تعذر تحميل الإحصائيات. تأكد من تشغيل الترحيل (migration) أولاً.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bulk Actions & Filters Container */}
