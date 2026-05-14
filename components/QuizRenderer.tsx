@@ -66,12 +66,9 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
   const [completedClues, setCompletedClues] = useState<Set<string>>(new Set());
   const [isComplete, setIsComplete] = useState(false);
 
-  const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
-
-  // Init refs grid
-  useEffect(() => {
-    inputRefs.current = Array.from({ length: rows }, () => Array(cols).fill(null));
-  }, [rows, cols]);
+  const inputRefs = useRef<(HTMLInputElement | null)[][]>(
+    Array.from({ length: rows }, () => Array(cols).fill(null))
+  );
 
   function firstCell() {
     for (let r = 0; r < rows; r++)
@@ -410,7 +407,7 @@ function CrosswordGame({ crossword }: { crossword: CrosswordData }) {
                           </span>
                         )}
                         <input
-                          ref={el => { inputRefs.current[rIdx]![cIdx] = el; }}
+                          ref={el => { if (inputRefs.current[rIdx]) inputRefs.current[rIdx][cIdx] = el; }}
                           type="text"
                           maxLength={1}
                           value={userGrid[rIdx][cIdx] || ''}
