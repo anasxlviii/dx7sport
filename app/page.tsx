@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { db } from '@/lib/db/db';
-import { articles as articlesTable, settings } from '@/lib/db/schema';
+import { articles as articlesTable, settings, transfers as transfersTable } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { ArticleCard } from '@/components/ArticleCard';
+import { TransferCard } from '@/components/TransferCard';
 import { FeedFilter } from '@/components/FeedFilter';
 import { ScoreSection } from '@/components/ScoreSection';
 import { HeroSlideshow } from '@/components/HeroSlideshow';
@@ -15,30 +16,31 @@ export const revalidate = 300;
 const DATA_TIMEOUT = 15000;
 
 async function getData() {
-  if (!db) return { allArticles: [], settingsMap: {}, scores: [] };
+  if (!db) return { allArticles: [], settingsMap: {}, scores: [], latestTransfers: [] };
   for (let i = 0; i < 3; i++) {
     try {
       const result = await Promise.race([
         Promise.all([
           db.select({ id: articlesTable.id, title: articlesTable.title, slug: articlesTable.slug, excerpt: articlesTable.excerpt, featuredImage: articlesTable.featuredImage, category: articlesTable.category, status: articlesTable.status, publishedAt: articlesTable.publishedAt, createdAt: articlesTable.createdAt }).from(articlesTable).where(eq(articlesTable.status, 'published')).orderBy(desc(articlesTable.id)).limit(40),
           db.select().from(settings),
-          getTopLeaguesScores()
+          getTopLeaguesScores(),
+          db.select().from(transfersTable).orderBy(desc(transfersTable.createdAt)).limit(6),
         ]),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Homepage data fetch timed out')), DATA_TIMEOUT))
       ]);
-      const [allArticles, allSettings, scores] = result;
+      const [allArticles, allSettings, scores, latestTransfers] = result;
 
       const settingsMap: Record<string, string> = {};
       allSettings.forEach(s => settingsMap[s.key] = s.value || '');
 
-      return { allArticles, settingsMap, scores };
+      return { allArticles, settingsMap, scores, latestTransfers };
     } catch (err) {
       console.error(`[Homepage] Fetch error (attempt ${i + 1}/3):`, err);
-      if (i === 2) return { allArticles: [], settingsMap: {}, scores: [] };
+      if (i === 2) return { allArticles: [], settingsMap: {}, scores: [], latestTransfers: [] };
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
-  return { allArticles: [], settingsMap: {}, scores: [] };
+  return { allArticles: [], settingsMap: {}, scores: [], latestTransfers: [] };
 }
 
 function featuredImg(article: { id: number; featuredImage: string | null }): string | null {
@@ -56,7 +58,7 @@ function sanitizeArticles(articles: any[]) {
 }
 
 export default async function Home() {
-  const { allArticles: rawArticles, settingsMap, scores } = await getData();
+  const { allArticles: rawArticles, settingsMap, scores, latestTransfers } = await getData();
   const allArticles = sanitizeArticles(rawArticles);
 
   const featuredArticle = allArticles.length > 0 ? allArticles[0] : null;
@@ -255,6 +257,34 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Transfers Section */}
+      {latestTransfers.length > 0 && (
+        <section className="py-32 relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <h2 className="text-4xl font-black italic text-white uppercase flex items-center gap-4 py-2">
+                  <span className="w-12 h-1 bg-lime shadow-[0_0_15px_rgba(179,212,0,0.5)]" />
+                  سوق الانتقالات
+                </h2>
+                <p className="text-gray-500 text-xs font-black uppercase tracking-[0.3em] mt-4 mr-16">آخر الصفقات والشائعات</p>
+              </div>
+              <Link
+                href="/transfers"
+                className="text-[10px] font-black text-lime uppercase tracking-[0.3em] hover:text-white transition-colors flex-shrink-0"
+              >
+                عرض الكل ←
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              {latestTransfers.map((t) => (
+                <TransferCard key={t.id} transfer={t} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Live Scores Section */}
       <ScoreSection scores={scores} />

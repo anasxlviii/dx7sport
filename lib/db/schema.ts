@@ -61,6 +61,19 @@ export const pageViews = pgTable('page_views', {
   pathDateUnq: unique('page_views_path_date_unique').on(t.path, t.date),
 }));
 
+export const transfers = pgTable('transfers', {
+  id: serial('id').primaryKey(),
+  playerName: text('player_name').notNull(),
+  playerImage: text('player_image'),
+  fromClub: text('from_club').notNull(),
+  toClub: text('to_club').notNull(),
+  transferType: varchar('transfer_type', { length: 20 }).notNull(),
+  feeEuros: integer('fee_euros'),
+  status: varchar('status', { length: 20 }).default('rumour'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export type Setting = typeof settings.$inferSelect;
 export type PageView = typeof pageViews.$inferSelect;
+export type Transfer = typeof transfers.$inferSelect;
 

@@ -1,7 +1,7 @@
+import { cache } from 'react';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
-import { cache } from 'react';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -9,15 +9,12 @@ if (!connectionString) {
   console.warn('⚠️ DATABASE_URL is missing! Database features will not work.');
 }
 
-const pooledConnectionString = connectionString ? connectionString.replace(':5432', ':6543') : '';
-
-const client = pooledConnectionString 
-  ? postgres(pooledConnectionString, { 
+const client = connectionString
+  ? postgres(connectionString, {
       max: 10,
       idle_timeout: 20,
       connect_timeout: 10,
-      statement_timeout: 10000,
-      prepare: false, 
+      prepare: true,
     })
   : null;
 
