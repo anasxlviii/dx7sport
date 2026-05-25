@@ -24,7 +24,7 @@ export function TransferCard({ transfer }: { transfer: any }) {
   const st = statusLabels[transfer.status || 'rumour'];
   return (
     <div className="group bg-zinc-950 border border-zinc-900 overflow-hidden transition-all hover:border-lime/30 hover:-translate-y-1">
-      <div className="relative h-40 overflow-hidden bg-zinc-900">
+      <div className="relative h-28 overflow-hidden bg-zinc-900">
         {transfer.playerImage ? (
           <Image
             src={transfer.playerImage}
@@ -36,37 +36,37 @@ export function TransferCard({ transfer }: { transfer: any }) {
           />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <span className="text-4xl font-black text-zinc-800">{transfer.playerName.charAt(0)}</span>
+            <span className="text-3xl font-black text-zinc-800">{transfer.playerName.charAt(0)}</span>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-        <div className="absolute top-2 left-2">
-          <span className={`text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded ${st.class}`}>
+        <div className="absolute top-1.5 left-1.5">
+          <span className={`text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded ${st.class}`}>
             {st.label}
           </span>
         </div>
-        <div className="absolute top-2 right-2">
-          <span className="text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded bg-black/60 text-white border border-white/10">
+        <div className="absolute top-1.5 right-1.5">
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded bg-black/60 text-white border border-white/10">
             {typeLabels[transfer.transferType] || transfer.transferType}
           </span>
         </div>
       </div>
 
-      <div className="p-4">
-        <h3 className="text-sm font-black italic text-white leading-tight mb-2 group-hover:text-lime transition-colors truncate py-0.5">
+      <div className="p-3">
+        <h3 className="text-xs font-black italic text-white leading-tight mb-1.5 group-hover:text-lime transition-colors truncate py-0.5">
           {transfer.playerName}
         </h3>
 
-        <div className="flex items-center gap-1 text-xs mb-2">
+        <div className="flex items-center gap-1 text-[11px] mb-1.5">
           <span className="text-gray-500 truncate max-w-[70px]">{transfer.fromClub}</span>
           <span className="text-lime flex-shrink-0">→</span>
           <span className="text-gray-500 truncate max-w-[70px]">{transfer.toClub}</span>
         </div>
 
-        <div className="border-t border-zinc-800 pt-2 mt-2">
+        <div className="border-t border-zinc-800 pt-1.5 mt-1.5">
           <div className="flex justify-between items-center">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-600">الرسوم</span>
-            <span className="text-lime font-black text-sm">{formatFee(transfer.feeEuros)}</span>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-gray-600">الرسوم</span>
+            <span className="text-lime font-black text-xs">{formatFee(transfer.feeEuros)}</span>
           </div>
         </div>
       </div>

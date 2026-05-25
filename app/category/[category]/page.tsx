@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db/db';
-import { articles as articlesTable } from '@/lib/db/schema';
+import { articles as articlesTable, transfers as transfersTable } from '@/lib/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { ArticleCard } from '@/components/ArticleCard';
+import { TransferCard } from '@/components/TransferCard';
 
-
-export const revalidate = 600;
+export const revalidate = 120;
 
 const CATEGORIES = {
   news: 'أخبار عالمية',
@@ -41,22 +41,35 @@ async function getArticlesByCategory(category: string, retries = 5) {
   return [];
 }
 
+async function getTransfers() {
+  if (!db) return [];
+  try {
+    return await db.select().from(transfersTable).orderBy(desc(transfersTable.createdAt));
+  } catch (err) {
+    console.error('[CategoryPage] transfers error:', err);
+    return [];
+  }
+}
+
 export default async function CategoryPage({
   params,
 }: {
   params: Promise<{ category: string }>;
 }) {
   const { category } = await params;
-  const rawArticles = await getArticlesByCategory(category);
-  const articles = rawArticles.map(a => ({
-    ...a,
-    featuredImage: a.featuredImage?.startsWith('data:') ? null : a.featuredImage,
-  }));
   const categoryTitle = CATEGORIES[category as keyof typeof CATEGORIES];
 
   if (!categoryTitle) {
     notFound();
   }
+
+  const isTransfer = category === 'transfer';
+  const rawArticles = isTransfer ? [] : await getArticlesByCategory(category);
+  const articles = rawArticles.map(a => ({
+    ...a,
+    featuredImage: a.featuredImage?.startsWith('data:') ? null : a.featuredImage,
+  }));
+  const transfers = isTransfer ? await getTransfers() : [];
 
   return (
     <div className="min-h-screen bg-black" dir="rtl">
@@ -82,23 +95,46 @@ export default async function CategoryPage({
         </div>
       </section>
 
-      {/* Articles Grid */}
+      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        {articles.length === 0 ? (
-          <div className="border border-zinc-900 bg-zinc-950/50 p-32 text-center">
-            <p className="text-gray-600 uppercase tracking-[0.3em] font-black text-xs leading-relaxed">
-              لا توجد مقالات في هذا القسم حالياً. <br /> تابعنا للمزيد من التغطيات الحصرية قريباً.
-            </p>
-            <Link href="/" className="mt-8 inline-block text-lime text-xs font-black uppercase tracking-widest border-b border-lime pb-1">
-               تصفح الأخبار الأخرى
-            </Link>
-          </div>
+        {isTransfer ? (
+          <>
+            {transfers.length === 0 ? (
+              <div className="border border-zinc-900 bg-zinc-950/50 p-32 text-center">
+                <p className="text-gray-600 uppercase tracking-[0.3em] font-black text-xs leading-relaxed">
+                  لا توجد انتقالات حالياً. <br /> تابعنا للمزيد من التغطيات الحصرية قريباً.
+                </p>
+                <Link href="/" className="mt-8 inline-block text-lime text-xs font-black uppercase tracking-widest border-b border-lime pb-1">
+                   تصفح الأخبار الأخرى
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {transfers.map((t) => (
+                  <TransferCard key={t.id} transfer={t} />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
-            ))}
-          </div>
+          <>
+            {articles.length === 0 ? (
+              <div className="border border-zinc-900 bg-zinc-950/50 p-32 text-center">
+                <p className="text-gray-600 uppercase tracking-[0.3em] font-black text-xs leading-relaxed">
+                  لا توجد مقالات في هذا القسم حالياً. <br /> تابعنا للمزيد من التغطيات الحصرية قريباً.
+                </p>
+                <Link href="/" className="mt-8 inline-block text-lime text-xs font-black uppercase tracking-widest border-b border-lime pb-1">
+                   تصفح الأخبار الأخرى
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                {articles.map((article) => (
+                  <ArticleCard key={article.id} article={article} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 

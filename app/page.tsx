@@ -271,7 +271,7 @@ export default async function Home() {
                 <p className="text-gray-500 text-xs font-black uppercase tracking-[0.3em] mt-4 mr-16">آخر الصفقات والشائعات</p>
               </div>
               <Link
-                href="/transfers"
+                href="/category/transfer"
                 className="text-[10px] font-black text-lime uppercase tracking-[0.3em] hover:text-white transition-colors flex-shrink-0"
               >
                 عرض الكل ←
