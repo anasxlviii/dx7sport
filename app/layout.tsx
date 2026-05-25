@@ -25,9 +25,9 @@ export const metadata: Metadata = {
   title: "DX7 SPORT | The Ultimate Football Intel",
   description: "Your autonomous source for researched football intelligence, tactical analysis, and breaking news.",
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    icon: '/logo.webp',
+    shortcut: '/logo.webp',
+    apple: '/logo.webp',
   },
   openGraph: {
     type: 'website',

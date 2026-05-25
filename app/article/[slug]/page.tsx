@@ -131,7 +131,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             )}
 
             <ArticleRenderer
-              content={article.content}
+              content={fixContent(article.content)}
               galleryImages={galleryImages}
               adMidArticle={adSettings.ad_article_mid}
               adMidEnabled={adSettings.ad_article_mid_enabled === 'true'}
