@@ -141,7 +141,7 @@ Please analyze the trending context, fact-check it, and generate the final Moovi
     const schema = {
       type: 'OBJECT',
       properties: {
-        en: { type: 'STRING', description: 'The type string is exact English clean name/headline' },
+        en: { type: 'STRING', description: 'The English clean name/headline of the news topic.' },
         ar: { type: 'STRING', description: 'A highly engaging Kufic-style Arabic title (max 8-10 words)' },
         genre: { 
           type: 'STRING', 
@@ -161,16 +161,37 @@ Please analyze the trending context, fact-check it, and generate the final Moovi
       temperature: 0.6
     })
     
-    console.log(`[Reddit Scraper] AI completed news curation: "${generated.en}" (${generated.ar})`)
+    // Robust Key Fallbacks for Multi-Provider Outputs
+    let rawAr = generated.ar || generated.titleAr || generated.arabicTitle || '';
+    let rawEn = generated.en || generated.titleEn || generated.englishTitle || '';
+
+    if (generated.title) {
+      if (typeof generated.title === 'object' && generated.title !== null) {
+        if (!rawAr) rawAr = generated.title.ar || generated.title.arabic || '';
+        if (!rawEn) rawEn = generated.title.en || generated.title.english || '';
+      } else if (typeof generated.title === 'string') {
+        if (!rawAr) rawAr = generated.title;
+      }
+    }
     
-    const rawSearchQuery = generated.imageQuery || generated.image_query || generated.searchQuery || generated.search_query || generated.en
+    if (!rawAr) rawAr = cleanedHeadline;
+    if (!rawEn) rawEn = cleanedHeadline;
+
+    let rawExtract = generated.extract || generated.content || generated.synopsis || generated.description || generated.body || '';
+    if (typeof rawExtract !== 'string') rawExtract = String(rawExtract || '');
+
+    const rawGenre = generated.genre || generated.category || 'دراما';
+    
+    console.log(`[Reddit Scraper] AI completed news curation: "${rawEn}" (${rawAr})`)
+    
+    const rawSearchQuery = generated.imageQuery || generated.image_query || generated.searchQuery || generated.search_query || rawEn
     const backdropUrl = await getBestBackdrop(rawSearchQuery)
     
     return {
-      en: generated.en,
-      ar: generated.ar,
-      genre: generated.genre,
-      extract: generated.extract,
+      en: rawEn,
+      ar: rawAr,
+      genre: rawGenre,
+      extract: rawExtract,
       imageUrl: backdropUrl
     }
     
